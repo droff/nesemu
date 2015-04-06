@@ -15,16 +15,32 @@ module NES
       def init
         @reg = Register.new
         @memory = Memory.new
+        @cycles = 0
+        reset
       end
 
       def reset
-        @reg = Register.new
+        @reg.pc = 0x0600
+        @reg.sp = 0xff
+        set_flags(0x24)
       end
 
       def execute
         @reg.pc = 0x2000
         @memory.store(@reg.pc, 0xff)
         lda(@reg.pc)
+      end
+
+      def dump
+        puts "A=#{hex(@reg.a)}"
+        puts "X=#{hex(@reg.x)}"
+        puts "Y=#{hex(@reg.y)}"
+        puts "SP=#{hex(@reg.sp)}"
+        puts "PC=#{hex(@reg.pc)}"
+      end
+
+      def hex(value)
+        value.to_s(16)
       end
     end
 
@@ -33,29 +49,22 @@ module NES
     ##
     # CPU registers
     class Register
-      attr_accessor :a, :x, :y, :p, :s, :pc, :c, :z, :i, :d, :v, :n
-
-      FLAGS = {
-        C: 0b00000001,
-        Z: 0b00000010,
-        I: 0b00000100,
-        D: 0b00001000,
-        V: 0b01000000,
-        N: 0b10000000
-      }
+      attr_accessor :a, :x, :y, :p, :sp, :pc, :c, :z, :i, :d, :b, :u, :v, :n
 
       def initialize
         @a = 0   # A: ACCUMULATOR
         @x = 0   # X: INDEX
         @y = 0   # Y: INDEX
         @p = 0   # P: PROCESSOR STATUS
-        @s = 0   # S: STACK POINTER
+        @sp = 0  # S: STACK POINTER
         @pc = 0  # PC: PROGRAM COUNTER (16-bit)
 
         @c = 0;
         @z = 0;
         @i = 0;
         @d = 0;
+        @b = 0;
+        @u = 0;
         @v = 0;
         @n = 0;
       end

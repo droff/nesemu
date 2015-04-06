@@ -4,12 +4,28 @@ module NES
       reset
     end
 
+    def fetch16(address)
+      lo = fetch(address)
+      hi = fetch(address + 1)
+      hi << 8 | lo
+    end
+
     def fetch(address)
-      @mem[address]
+      case
+      when address < 0x2000
+        @mem[address % 0x800]
+      else
+        puts "allocated memory address: #{address.to_s(16)}"
+      end
     end
 
     def store(address, value)
-      @mem[address] = value
+      case
+      when address < 0x2000
+        @mem[address % address] = value
+      else
+        puts "allocated memory address: #{address.to_s(16)}"
+      end
     end
 
     def reset
