@@ -1,17 +1,13 @@
 require_relative 'lib/nes'
 include NES
 
+code = 'LDA #$01\n'\
+	#'LDA $2000\n'
+
+puts "-----"
+code.split('\n').each { |line| puts line}
+puts "-----"
+
 CPU.init
-
-CPU.sed
-
-CPU.lda(0x01)
-CPU.sta(0x0200)
-
-CPU.lda(0x05)
-CPU.sta(0x201)
-
-CPU.lda(0x08)
-CPU.sta(0x0202)
-
+CPU.execute(code)
 CPU.dump

@@ -1,96 +1,11 @@
 module Instructions
-  def flags
-    flags = 0x00000000
-    flags |= @reg.c << 0
-    flags |= @reg.z << 1
-    flags |= @reg.i << 2
-    flags |= @reg.d << 3
-    flags |= @reg.b << 4
-    flags |= @reg.u << 5
-    flags |= @reg.v << 6
-    flags |= @reg.n << 7
-
-    flags
-  end
-
-  def set_flags(flags)
-    @reg.c = (flags >> 0) & 1
-    @reg.z = (flags >> 1) & 1
-    @reg.i = (flags >> 2) & 1
-    @reg.d = (flags >> 3) & 1
-    @reg.b = (flags >> 4) & 1
-    @reg.u = (flags >> 5) & 1
-    @reg.v = (flags >> 6) & 1
-    @reg.n = (flags >> 7) & 1
-  end
-
-  def diff(a, b)
-    (a & 0xff00) != (b & 0xff00)
-  end
-
-  def add_cycles(address)
-    @cycles += 1
-    @cycles += 1 if diff(@reg.pc, @reg.address)
-  end
-
-  def push(value)
-    @memory.store(0x100 | value, value)
-    @reg.sp -= 1
-  end
-
-  def pop
-    @reg.sp += 1
-    @memory.fetch(0x100 | @reg.sp)
-  end
-
-  def push16(value)
-    hi = value >> 8
-    lo = value & 0xff
-    push(hi)
-    push(lo)
-  end
-
-  def pop16
-    lo = pull
-    hi = pull
-    hi << 8 | lo
-  end
-
-  def compare(a, b)
-    setzn(a - b)
-    @reg.c =
-      if a >= b
-        1
-      else
-        0
-      end
-  end
-
-  def setz(value)
-    @reg.z =
-      if value == 0
-        1
-      else
-        0
-      end
-  end
-
-  def setn(value)
-    @reg.n =
-      if value < 0
-        1
-      else
-        0
-      end
-  end
-
-  def setzn(value)
-    setz(value)
-    setn(value)
-  end
-
-  def lda(address)
-    @reg.a = @memory.fetch(address)
+  def lda(address, mode)
+    case mode
+    when 0
+      @reg.a = address
+    else
+      @reg.a = @memory.fetch(address)
+    end
     setzn(@reg.a)
   end
 
@@ -443,5 +358,97 @@ module Instructions
   def rti(address)
     set_flags(pull & 0xef | 0x20)
     @reg.pc = pop16
+  end
+
+  private
+
+  def flags
+    flags = 0x00000000
+    flags |= @reg.c << 0
+    flags |= @reg.z << 1
+    flags |= @reg.i << 2
+    flags |= @reg.d << 3
+    flags |= @reg.b << 4
+    flags |= @reg.u << 5
+    flags |= @reg.v << 6
+    flags |= @reg.n << 7
+
+    flags
+  end
+
+  def set_flags(flags)
+    @reg.c = (flags >> 0) & 1
+    @reg.z = (flags >> 1) & 1
+    @reg.i = (flags >> 2) & 1
+    @reg.d = (flags >> 3) & 1
+    @reg.b = (flags >> 4) & 1
+    @reg.u = (flags >> 5) & 1
+    @reg.v = (flags >> 6) & 1
+    @reg.n = (flags >> 7) & 1
+  end
+
+  def diff(a, b)
+    (a & 0xff00) != (b & 0xff00)
+  end
+
+  def add_cycles(address)
+    @cycles += 1
+    @cycles += 1 if diff(@reg.pc, @reg.address)
+  end
+
+  def push(value)
+    @memory.store(0x100 | value, value)
+    @reg.sp -= 1
+  end
+
+  def pop
+    @reg.sp += 1
+    @memory.fetch(0x100 | @reg.sp)
+  end
+
+  def push16(value)
+    hi = value >> 8
+    lo = value & 0xff
+    push(hi)
+    push(lo)
+  end
+
+  def pop16
+    lo = pull
+    hi = pull
+    hi << 8 | lo
+  end
+
+  def compare(a, b)
+    setzn(a - b)
+    @reg.c =
+      if a >= b
+        1
+      else
+        0
+      end
+  end
+
+  def setz(value)
+    @reg.z =
+      if value == 0
+        1
+      else
+        0
+      end
+  end
+
+  def setn(value)
+    @reg.n =
+      if value < 0
+        1
+      else
+        0
+      end
+  end
+
+  def setzn(value)
+    setz(value)
+    setn(value)
   end
 end

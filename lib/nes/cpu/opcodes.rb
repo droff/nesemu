@@ -1,5 +1,5 @@
 module Opcodes
-  opcode_list = {
+  OPCODE_LIST = {
     'LDA' => [
       [0xa9, 2, 2],
       [0xa5, 2, 3],
