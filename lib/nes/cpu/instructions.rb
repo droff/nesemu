@@ -38,7 +38,7 @@ module Instructions
     @reg.sp -= 1
   end
 
-  def pull
+  def pop
     @reg.sp += 1
     @memory.fetch(0x100 | @reg.sp)
   end
@@ -50,15 +50,15 @@ module Instructions
     push(lo)
   end
 
-  def pull16
-    lo = cpu.pull
-    hi = cpu.pull
+  def pop16
+    lo = pull
+    hi = pull
     hi << 8 | lo
   end
 
   def compare(a, b)
     setzn(a - b)
-    @reg.c = 
+    @reg.c =
       if a >= b
         1
       else
@@ -90,17 +90,17 @@ module Instructions
   end
 
   def lda(address)
-    @reg.a = address
+    @reg.a = @memory.fetch(address)
     setzn(@reg.a)
   end
 
   def ldx(address)
-    @reg.x = address
+    @reg.x = @memory.fetch(address)
     setzn(@reg.x)
   end
 
   def ldy(address)
-    @reg.y = address
+    @reg.y = @memory.fetch(address)
     setzn(@reg.y)
   end
 
@@ -190,8 +190,8 @@ module Instructions
 
     @reg.a = a + b + c
     setzn(@reg.a)
-    
-    @reg.c = 
+
+    @reg.c =
       if (a + b + c) > 0xff
         1
       else
@@ -213,8 +213,8 @@ module Instructions
 
     @reg.a = a - b - (1 - c)
     setzn(@reg.a)
-    
-    @reg.c = 
+
+    @reg.c =
       if (a - b - (1 - c)) >= 0
         1
       else
@@ -343,7 +343,7 @@ module Instructions
   end
 
   def rts(address)
-    @reg.pc = pull16 + 1
+    @reg.pc = pop16 + 1
   end
 
   def bcc(address)
@@ -442,6 +442,6 @@ module Instructions
 
   def rti(address)
     set_flags(pull & 0xef | 0x20)
-    @reg.pc = pull16
+    @reg.pc = pop16
   end
 end

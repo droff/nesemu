@@ -3,6 +3,8 @@ include NES
 
 CPU.init
 
+CPU.sed
+
 CPU.lda(0x01)
 CPU.sta(0x0200)
 

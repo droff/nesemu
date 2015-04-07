@@ -1,4 +1,5 @@
 require_relative 'cpu/instructions'
+require_relative 'cpu/opcodes'
 ##
 #
 module NES
@@ -6,6 +7,7 @@ module NES
   # CPU 6502 implementation
   class CPU
     extend Instructions
+    extend Opcodes
 
     FREQ = 1789773
 
@@ -26,9 +28,6 @@ module NES
       end
 
       def execute
-        @reg.pc = 0x2000
-        @memory.store(@reg.pc, 0xff)
-        lda(@reg.pc)
       end
 
       def dump
