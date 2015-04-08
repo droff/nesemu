@@ -377,29 +377,49 @@ module Instructions
 
   private
 
-  def flags
-    flags = 0x00000000
-    flags |= @reg.c << 0
-    flags |= @reg.z << 1
-    flags |= @reg.i << 2
-    flags |= @reg.d << 3
-    flags |= @reg.b << 4
-    flags |= @reg.u << 5
-    flags |= @reg.v << 6
-    flags |= @reg.n << 7
-
-    flags
+  def mode(var, value, mode)
+    case mode
+    # imm
+    when 0
+      var = value
+    # zp
+    when 1
+      var = value
+    # zpx
+    when 2
+      get_lo(value + @reg.x)
+    # zpy
+    when 3
+      #
+    # abs
+    when 4
+      #
+    # absx
+    when 5
+      #
+    # absy
+    when 6
+      #
+    # ind
+    when 7
+      #
+    # indx
+    when 8
+      #
+    # indy
+    when 9
+      #
+    # sngl
+    # bra
+    end
   end
 
-  def set_flags(flags)
-    @reg.c = (flags >> 0) & 1
-    @reg.z = (flags >> 1) & 1
-    @reg.i = (flags >> 2) & 1
-    @reg.d = (flags >> 3) & 1
-    @reg.b = (flags >> 4) & 1
-    @reg.u = (flags >> 5) & 1
-    @reg.v = (flags >> 6) & 1
-    @reg.n = (flags >> 7) & 1
+  def get_lo(value)
+    value & 0xff
+  end
+
+  def get_hi(value)
+    value >> 8
   end
 
   def diff(a, b)
@@ -436,30 +456,15 @@ module Instructions
 
   def compare(a, b)
     setzn(a - b)
-    @reg.c =
-      if a >= b
-        1
-      else
-        0
-      end
+    @reg.c = (a >= b) ? 1 : 0
   end
 
   def setz(value)
-    @reg.z =
-      if value == 0
-        1
-      else
-        0
-      end
+    @reg.z = (value == 0) ? 1 : 0
   end
 
   def setn(value)
-    @reg.n =
-      if value < 0
-        1
-      else
-        0
-      end
+    @reg.n = (value < 0) ? 1 : 0
   end
 
   def setzn(value)

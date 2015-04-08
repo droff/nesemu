@@ -1,5 +1,6 @@
 require_relative 'cpu/instructions'
 require_relative 'cpu/opcodes'
+require_relative 'cpu/register'
 ##
 #
 module NES
@@ -47,7 +48,7 @@ module NES
           command, param = line.upcase.split(' ')
           mode, value, size = check_param(param)
 
-          opcode = get_opcode(command, mode) unless mode.nil?
+          opcode = get_opcode(command, mode)
           @memory.store(@reg.pc, opcode)
           @reg.pc += 1
 
@@ -75,7 +76,11 @@ module NES
       private
 
       def get_opcode(command, mode)
-        OPCODE_LIST[command][mode]
+        if mode
+          OPCODE_LIST[command][mode]
+        else
+          OPCODE_LIST[command][-2..-1].compact.first
+        end
       end
 
       def get_value(param)
@@ -125,32 +130,6 @@ module NES
         else
           [nil, nil, nil]
         end
-      end
-    end
-
-    private
-
-    ##
-    # CPU registers
-    class Register
-      attr_accessor :a, :x, :y, :p, :sp, :pc, :c, :z, :i, :d, :b, :u, :v, :n
-
-      def initialize
-        @a = 0   # A: ACCUMULATOR
-        @x = 0   # X: INDEX
-        @y = 0   # Y: INDEX
-        @p = 0   # P: PROCESSOR STATUS
-        @sp = 0  # S: STACK POINTER
-        @pc = 0  # PC: PROGRAM COUNTER (16-bit)
-
-        @c = 0;
-        @z = 0;
-        @i = 0;
-        @d = 0;
-        @b = 0;
-        @u = 0;
-        @v = 0;
-        @n = 0;
       end
     end
   end
