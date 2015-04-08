@@ -9,13 +9,23 @@ module Instructions
     setzn(@reg.a)
   end
 
-  def ldx(address)
-    @reg.x = @memory.fetch(address)
+  def ldx(address, mode)
+    case mode
+    when 0
+      @reg.x = address
+    else
+      @reg.x = @memory.fetch(address)
+    end
     setzn(@reg.x)
   end
 
-  def ldy(address)
-    @reg.y = @memory.fetch(address)
+  def ldy(address, mode)
+    case mode
+    when 0
+      @reg.y = address
+    else
+      @reg.y = @memory.fetch(address)
+    end
     setzn(@reg.y)
   end
 
@@ -98,9 +108,14 @@ module Instructions
     setn(value)
   end
 
-  def adc(address)
+  def adc(address, mode)
     a = @reg.a
-    b = @memory.fetch(address)
+    case mode
+    when 0
+      b = address
+    else
+      b = @memory.fetch(address)
+    end
     c = @reg.c
 
     @reg.a = a + b + c

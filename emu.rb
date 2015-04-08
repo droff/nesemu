@@ -1,12 +1,14 @@
 require_relative 'lib/nes'
 include NES
 
-code = 'LDA #$01\n'\
-	#'LDA $2000\n'
+code =
+  'LDA #$01\n'\
+  'TAX\n'\
+  #'ADC #$c4\n'\
+  #'LDY $0601\n'
 
-puts "-----"
 code.split('\n').each { |line| puts line}
-puts "-----"
+puts '-----------------------------------'
 
 CPU.init
 CPU.execute(code)

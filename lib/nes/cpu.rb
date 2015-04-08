@@ -30,84 +30,101 @@ module NES
       def execute(code)
         code = code.split('\n')
         assemble(code)
+        @memory.store(@reg.pc, 0)
+        @reg.pc += 1
       end
 
       def dump
-        puts "A=#{hex(@reg.a)}"
-        puts "X=#{hex(@reg.x)}"
-        puts "Y=#{hex(@reg.y)}"
+        puts "A=#{hex(@reg.a)} X=#{hex(@reg.x)} Y=#{hex(@reg.y)}"
         puts "SP=#{hex(@reg.sp)}"
         puts "PC=#{hex(@reg.pc)}"
-        puts "---"
+        puts "-----------------------------------"
         puts @memory.dump(0x0600, @reg.pc)
       end
 
       def assemble(code)
         code.each do |line|
           command, param = line.upcase.split(' ')
+          mode, value, size = check_param(param)
 
-          case param
-          when /^\#/
-            mode = 0
-            value = get_value(param)
-            lda(value, mode)
-          when /^\$[\dABCDEF]{1,2}$/
-            mode = 1
-            value = get_value(param)
-          when /^\$[\dABCDEF]{1,2}\,X$/
-            mode = 2
-            value = get_value(param)
-          when /^\$[\dABCDEF]{4}$/
-            mode = 3
-            value = get_address(param)
-          when /^\$[\dABCDEF]{4}\,X$/
-            mode = 4
-            value = get_address(param)
-          when /^\$[\dABCDEF]{4}\,Y$/
-            mode = 5
-            value = get_address(param)
-          when /^\(\$[\dABCDEF]{2}\,X\)$/
-            mode = 6
-            value = get_value(param)
-          when /^\(\$[\dABCDEF]{2}\)\,Y$/
-            mode = 7
-            value = get_value(param)
-          else
-            mode = nil
-            value = nil
-          end
-
-          opcode, size, cycles = OPCODE_LIST[command][mode]
+          opcode = get_opcode(command, mode) unless mode.nil?
           @memory.store(@reg.pc, opcode)
           @reg.pc += 1
 
-          if size > 2
-            word = (value & 0xff), (value >> 8)
-            size.times do |i|
-              @memory.store(@reg.pc, word[i])
+          unless value.nil?
+            if size > 2
+              word = (value & 0xff), (value >> 8)
+              (size-1).times do |i|
+                @memory.store(@reg.pc, word[i])
+                @reg.pc += 1
+              end
+            else
+              @memory.store(@reg.pc, value)
               @reg.pc += 1
             end
-          else
-            @memory.store(@reg.pc, value)
-            @reg.pc += 1
           end
 
-          #@memory.store(@reg.pc, 0)
+          if value.nil?
+            self.send(command.downcase.to_sym)
+          else
+            self.send(command.downcase.to_sym, value, mode)
+          end
         end
       end
 
       private
 
+      def get_opcode(command, mode)
+        OPCODE_LIST[command][mode]
+      end
+
       def get_value(param)
-        param.scan(/[\dABCDEF]{1,2}/).first.to_i(16)
+        param.scan(/[0-9A-F]{1,2}/).first.to_i(16)
       end
 
       def get_address(param)
-        param.scan(/[\dABCDEF]{4}/).first.to_i(16)
+        param.scan(/[0-9A-F]{4}/).first.to_i(16)
       end
 
       def hex(value)
-        (value < 255 ? "%02X" : "%04X") % value
+        (value > 255 ? "%04X" : "%02X") % value
+      end
+
+      def check_param(param)
+        case param
+        # imm
+        when /^\#/
+          [0, get_value(param), 2]
+        # zp
+        when /^\$[0-9A-F]{1,2}$/
+          [1, get_value(param), 2]
+        # zpx
+        when /^\$[0-9A-F]{1,2}\,X$/
+          [2, get_value(param), 2]
+        # zpy
+        when /^\$[0-9A-F]{1,2}\,Y$/
+          [3, get_value(param), 2]
+        # abs
+        when /^\$[0-9A-F]{4}$/
+          [4, get_address(param), 3]
+        # absx
+        when /^\$[0-9A-F]{4}\,X$/
+          [5, get_address(param), 3]
+        # absy
+        when /^\$[0-9A-F]{4}\,Y$/
+          [6, get_address(param), 3]
+        # ind
+        when /^\(\$[0-9A-F]{4}\)$/
+          [7, get_address(param), 3]
+        # indx
+        when /^\(\$[0-9A-F]{2}\,X\)$/
+          [8, get_value(param), 2]
+        # indy
+        when /^\(\$[0-9A-F]{2}\)\,Y$/
+          [9, get_value(param), 2]
+        else
+          [nil, nil, nil]
+        end
       end
     end
 

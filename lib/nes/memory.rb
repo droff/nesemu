@@ -23,8 +23,8 @@ module NES
     end
 
     def dump(address, to)
-      m = @mem[address..(to - 1)].map { |e| "%02X" % e }
-      "#{"%02X" % address}: #{m.join(' ')}"
+      m = @mem[address..(to - 2)].map { |e| "%02X" % e }
+      "#{"%04X" % address}: #{m.join(' ')}"
     end
   end
 end
