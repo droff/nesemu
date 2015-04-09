@@ -1,4 +1,17 @@
 module Opcodes
+  MODE = {
+    imm: /^\#/,
+    zpg: /^\$[0-9A-F]{1,2}$/,
+    zpx: /^\$[0-9A-F]{1,2}\,X$/,
+    zpy: /^\$[0-9A-F]{1,2}\,Y$/,
+    abs: /^\$[0-9A-F]{4}$/,
+    abx: /^\$[0-9A-F]{4}\,X$/,
+    aby: /^\$[0-9A-F]{4}\,Y$/,
+    ind: /^\(\$[0-9A-F]{4}\)$/,
+    idx: /^\(\$[0-9A-F]{2}\,X\)$/,
+    idy: /^\(\$[0-9A-F]{2}\)\,Y$/
+  }
+
   OPCODE_LIST= {
     'ADC' => [0x69, 0x65, 0x75,  nil, 0x6d, 0x7d, 0x79,  nil, 0x61, 0x71,  nil,  nil],
     'AND' => [0x29, 0x25, 0x35,  nil, 0x2d, 0x3d, 0x39,  nil, 0x21, 0x31,  nil,  nil],

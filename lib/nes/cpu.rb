@@ -25,7 +25,6 @@ module NES
       def reset
         @reg.pc = 0x0600
         @reg.sp = 0xff
-        set_flags(0x24)
       end
 
       def execute(code)
@@ -33,12 +32,15 @@ module NES
         assemble(code)
         @memory.store(@reg.pc, 0)
         @reg.pc += 1
+        @reg.b = 1
       end
 
       def dump
         puts "A=#{hex(@reg.a)} X=#{hex(@reg.x)} Y=#{hex(@reg.y)}"
         puts "SP=#{hex(@reg.sp)}"
         puts "PC=#{hex(@reg.pc)}"
+        puts "NV-BDIZC"
+        puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
         puts "-----------------------------------"
         puts @memory.dump(0x0600, @reg.pc)
       end
@@ -52,23 +54,12 @@ module NES
           @memory.store(@reg.pc, opcode)
           @reg.pc += 1
 
-          unless value.nil?
-            if size > 2
-              word = (value & 0xff), (value >> 8)
-              (size-1).times do |i|
-                @memory.store(@reg.pc, word[i])
-                @reg.pc += 1
-              end
-            else
-              @memory.store(@reg.pc, value)
-              @reg.pc += 1
-            end
-          end
+          address = check_mode(mode, value) unless value.nil?
 
-          if value.nil?
-            self.send(command.downcase.to_sym)
+          if value
+            self.send(command.downcase.to_sym, address)
           else
-            self.send(command.downcase.to_sym, value, mode)
+            self.send(command.downcase.to_sym)
           end
         end
       end
@@ -83,12 +74,20 @@ module NES
         end
       end
 
-      def get_value(param)
+      def byte(param)
         param.scan(/[0-9A-F]{1,2}/).first.to_i(16)
       end
 
-      def get_address(param)
+      def word(param)
         param.scan(/[0-9A-F]{4}/).first.to_i(16)
+      end
+
+      def get_lo(value)
+        value & 0xff
+      end
+
+      def get_hi(value)
+        value >> 8
       end
 
       def hex(value)
@@ -97,39 +96,58 @@ module NES
 
       def check_param(param)
         case param
-        # imm
-        when /^\#/
-          [0, get_value(param), 2]
-        # zp
-        when /^\$[0-9A-F]{1,2}$/
-          [1, get_value(param), 2]
-        # zpx
-        when /^\$[0-9A-F]{1,2}\,X$/
-          [2, get_value(param), 2]
-        # zpy
-        when /^\$[0-9A-F]{1,2}\,Y$/
-          [3, get_value(param), 2]
-        # abs
-        when /^\$[0-9A-F]{4}$/
-          [4, get_address(param), 3]
-        # absx
-        when /^\$[0-9A-F]{4}\,X$/
-          [5, get_address(param), 3]
-        # absy
-        when /^\$[0-9A-F]{4}\,Y$/
-          [6, get_address(param), 3]
-        # ind
-        when /^\(\$[0-9A-F]{4}\)$/
-          [7, get_address(param), 3]
-        # indx
-        when /^\(\$[0-9A-F]{2}\,X\)$/
-          [8, get_value(param), 2]
-        # indy
-        when /^\(\$[0-9A-F]{2}\)\,Y$/
-          [9, get_value(param), 2]
+        when MODE[:imm]
+          [0, byte(param), 2]
+        when MODE[:zpg]
+          [1, byte(param), 2]
+        when MODE[:zpx]
+          [2, byte(param), 2]
+        when MODE[:zpy]
+          [3, byte(param), 2]
+        when MODE[:abs]
+          [4, word(param), 3]
+        when MODE[:abx]
+          [5, word(param), 3]
+        when MODE[:aby]
+          [6, word(param), 3]
+        when MODE[:ind]
+          [7, word(param), 3]
+        when MODE[:idx]
+          [8, byte(param), 2]
+        when MODE[:idy]
+          [9, byte(param), 2]
         else
           [nil, nil, nil]
         end
+      end
+
+      def check_mode(mode, value)
+        mode_keys = MODE.keys
+        address = @reg.pc
+
+        case mode
+        when mode_keys.index(:imm)
+          @memory.store(@reg.pc, value)
+          @reg.pc += 1
+        when mode_keys.index(:zpg)
+        when mode_keys.index(:zpx)
+        when mode_keys.index(:zpy)
+        when mode_keys.index(:abs)
+          lo = get_lo(value)
+          hi = get_hi(value)
+          @memory.store(@reg.pc, lo)
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi)
+          @reg.pc += 1
+        when mode_keys.index(:abx)
+        when mode_keys.index(:aby)
+        when mode_keys.index(:ind)
+        when mode_keys.index(:idx)
+        when mode_keys.index(:idy)
+        else
+        end
+
+        address
       end
     end
   end

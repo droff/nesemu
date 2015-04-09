@@ -1,31 +1,16 @@
 module Instructions
-  def lda(address, mode)
-    case mode
-    when 0
-      @reg.a = address
-    else
-      @reg.a = @memory.fetch(address)
-    end
+  def lda(address)
+    @reg.a = @memory.fetch(address)
     setzn(@reg.a)
   end
 
-  def ldx(address, mode)
-    case mode
-    when 0
-      @reg.x = address
-    else
-      @reg.x = @memory.fetch(address)
-    end
+  def ldx(address)
+    @reg.x = @memory.fetch(address)
     setzn(@reg.x)
   end
 
-  def ldy(address, mode)
-    case mode
-    when 0
-      @reg.y = address
-    else
-      @reg.y = @memory.fetch(address)
-    end
+  def ldy(address)
+    @reg.y = @memory.fetch(address)
     setzn(@reg.y)
   end
 
@@ -76,7 +61,7 @@ module Instructions
   end
 
   def php
-    @reg.s = @reg.p
+    #@reg.s = @reg.p
   end
 
   def pla
@@ -108,17 +93,12 @@ module Instructions
     setn(value)
   end
 
-  def adc(address, mode)
+  def adc(address)
     a = @reg.a
-    case mode
-    when 0
-      b = address
-    else
-      b = @memory.fetch(address)
-    end
+    b = @memory.fetch(address)
     c = @reg.c
 
-    @reg.a = a + b + c
+    @reg.a = (a + b + c) & 0xff
     setzn(@reg.a)
 
     @reg.c =
@@ -360,11 +340,11 @@ module Instructions
     @reg.i = 1
   end
 
-  def brk(address)
+  def brk
     push16(@reg.pc)
-    php(address)
-    sei(address)
-    @reg.pc = @memory.fetch(0xfffe)
+    php
+    sei
+    @reg.pc -= 1
   end
 
   def nop(address)
@@ -376,51 +356,6 @@ module Instructions
   end
 
   private
-
-  def mode(var, value, mode)
-    case mode
-    # imm
-    when 0
-      var = value
-    # zp
-    when 1
-      var = value
-    # zpx
-    when 2
-      get_lo(value + @reg.x)
-    # zpy
-    when 3
-      #
-    # abs
-    when 4
-      #
-    # absx
-    when 5
-      #
-    # absy
-    when 6
-      #
-    # ind
-    when 7
-      #
-    # indx
-    when 8
-      #
-    # indy
-    when 9
-      #
-    # sngl
-    # bra
-    end
-  end
-
-  def get_lo(value)
-    value & 0xff
-  end
-
-  def get_hi(value)
-    value >> 8
-  end
 
   def diff(a, b)
     (a & 0xff00) != (b & 0xff00)
