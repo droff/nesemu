@@ -9,7 +9,7 @@ class Register
     @y = 0   # Y: INDEX
     @p = 0   # P: PROCESSOR STATUS
     @sp = 0  # S: STACK POINTER
-    @pc = 0  # PC: PROGRAM COUNTER (16-bit)
+    @pc = 0x0600  # PC: PROGRAM COUNTER (16-bit)
 
     @c = 0
     @z = 0

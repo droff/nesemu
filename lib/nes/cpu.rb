@@ -24,7 +24,7 @@ module NES
 
       def reset
         @reg.pc = 0x0600
-        @reg.sp = 0xff
+        @reg.sp = 0x01ff
       end
 
       def execute(code)
@@ -41,8 +41,9 @@ module NES
         puts "PC=#{hex(@reg.pc)}"
         puts "NV-BDIZC"
         puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
-        puts "-----------------------------------"
+        puts '-----------------------------------'
         puts @memory.dump(0x0600, @reg.pc)
+        puts @memory.dump(0x01fa, 0x01ff)
       end
 
       def assemble(code)
@@ -82,11 +83,11 @@ module NES
         param.scan(/[0-9A-F]{4}/).first.to_i(16)
       end
 
-      def get_lo(value)
+      def lo(value)
         value & 0xff
       end
 
-      def get_hi(value)
+      def hi(value)
         value >> 8
       end
 
@@ -130,20 +131,48 @@ module NES
           @memory.store(@reg.pc, value)
           @reg.pc += 1
         when mode_keys.index(:zpg)
-        when mode_keys.index(:zpx)
-        when mode_keys.index(:zpy)
-        when mode_keys.index(:abs)
-          lo = get_lo(value)
-          hi = get_hi(value)
-          @memory.store(@reg.pc, lo)
+          @memory.store(@reg.pc, lo(value))
           @reg.pc += 1
-          @memory.store(@reg.pc, hi)
+        when mode_keys.index(:zpx)
+          @memory.store(@reg.pc, lo(value + @reg.x))
+          @reg.pc += 1
+        when mode_keys.index(:zpy)
+          @memory.store(@reg.pc, lo(value + @reg.y))
+          @reg.pc += 1
+        when mode_keys.index(:abs)
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
           @reg.pc += 1
         when mode_keys.index(:abx)
+          value += @reg.x
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
+          @reg.pc += 1
         when mode_keys.index(:aby)
+          value += @reg.y
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
+          @reg.pc += 1
         when mode_keys.index(:ind)
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
+          @reg.pc += 1
         when mode_keys.index(:idx)
+          value += @reg.x
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
+          @reg.pc += 1
         when mode_keys.index(:idy)
+          value += @reg.y
+          @memory.store(@reg.pc, lo(value))
+          @reg.pc += 1
+          @memory.store(@reg.pc, hi(value))
+          @reg.pc += 1
         else
         end
 

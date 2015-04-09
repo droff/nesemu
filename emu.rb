@@ -18,7 +18,7 @@ code2 =
 code = code2
 
 
-code.split('\n').each { |line| puts line}
+code.split('\n').each { |line| puts line }
 puts '-----------------------------------'
 
 CPU.init
