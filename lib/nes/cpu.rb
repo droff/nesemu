@@ -1,6 +1,7 @@
 require_relative 'cpu/instructions'
 require_relative 'cpu/opcodes'
 require_relative 'cpu/register'
+require_relative 'cpu/stack'
 ##
 #
 module NES
@@ -23,13 +24,15 @@ module NES
       end
 
       def reset
-        @reg.pc = 0x0600
+        @reg.pc = 0x0200
         @reg.sp = 0x01ff
       end
 
       def execute(code)
         code = code.split('\n')
         assemble(code)
+
+        # BRK
         @memory.store(@reg.pc, 0)
         @reg.pc += 1
         @reg.b = 1
@@ -42,8 +45,8 @@ module NES
         puts "NV-BDIZC"
         puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
         puts '-----------------------------------'
-        puts @memory.dump(0x0600, @reg.pc)
-        puts @memory.dump(0x01fa, 0x01ff)
+        puts @memory.dump(0x0200, @reg.pc)
+        puts @memory.dump(0x01fa, 0x01ff + 2)
       end
 
       def assemble(code)
@@ -92,7 +95,7 @@ module NES
       end
 
       def hex(value)
-        (value > 255 ? "%04X" : "%02X") % value
+        (value > 0xff ? "%04X" : "%02X") % value
       end
 
       def check_param(param)

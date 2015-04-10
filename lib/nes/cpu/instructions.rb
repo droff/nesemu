@@ -98,22 +98,12 @@ module Instructions
     b = @memory.fetch(address)
     c = @reg.c
 
-    @reg.a = (a + b + c) & 0xff
+    value = a + b +c
+
+    setc(value)
+    setv(value)
+    @reg.a = value & 0xff
     setzn(@reg.a)
-
-    @reg.c =
-      if (a + b + c) > 0xff
-        1
-      else
-        0
-      end
-
-    @reg.v =
-      if ((a ^ b) & 0x80 == 0) && ((a ^ @reg.a) & 0x80 != 0)
-        1
-      else
-        0
-      end
   end
 
   def sbc(address)
@@ -344,7 +334,6 @@ module Instructions
     push16(@reg.pc)
     php
     sei
-    @reg.pc -= 1
   end
 
   def nop(address)
@@ -366,16 +355,6 @@ module Instructions
     @cycles += 1 if diff(@reg.pc, @reg.address)
   end
 
-  def push(value)
-    @memory.store(0x100 | value, value)
-    @reg.sp -= 1
-  end
-
-  def pop
-    @reg.sp += 1
-    @memory.fetch(0x100 | @reg.sp)
-  end
-
   def push16(value)
     hi = value >> 8
     lo = value & 0xff
@@ -384,14 +363,22 @@ module Instructions
   end
 
   def pop16
-    lo = pull
-    hi = pull
+    lo = pop
+    hi = pop
     hi << 8 | lo
   end
 
   def compare(a, b)
     setzn(a - b)
     @reg.c = (a >= b) ? 1 : 0
+  end
+
+  def setc(value)
+    @reg.c = (value > 0xff) ? 1 : 0
+  end
+
+  def setv(value)
+    @reg.v = value.between?(0x80, 0xff) ? 1 : 0
   end
 
   def setz(value)

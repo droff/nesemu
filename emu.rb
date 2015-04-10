@@ -15,7 +15,16 @@ code2 =
   'ADC #$c4\n'\
   'BRK\n'
 
-code = code2
+code3 =
+  'CLC\n'\
+  'LDA $20\n'\
+  'ADC $22\n'\
+  'STA $24\n'\
+  'LDA $21\n'\
+  'ADC $23\n'\
+  'STA $25'\
+
+code = code3
 
 
 code.split('\n').each { |line| puts line }
