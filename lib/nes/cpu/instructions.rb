@@ -346,6 +346,11 @@ module Instructions
 
   private
 
+  def to_bcd(value)
+    value.divmod(16).reverse.each_with_index
+      .inject(0) {|sum, (e, i)| sum + (e * 10**i)}
+  end
+
   def diff(a, b)
     (a & 0xff00) != (b & 0xff00)
   end

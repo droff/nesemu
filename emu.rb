@@ -24,7 +24,7 @@ code3 =
   'ADC $23\n'\
   'STA $25'\
 
-code = code3
+code = code2
 
 
 code.split('\n').each { |line| puts line }

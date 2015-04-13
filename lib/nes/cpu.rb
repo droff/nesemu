@@ -134,6 +134,7 @@ module NES
           @memory.store(@reg.pc, value)
           @reg.pc += 1
         when mode_keys.index(:zpg)
+          address = lo(value)
           @memory.store(@reg.pc, lo(value))
           @reg.pc += 1
         when mode_keys.index(:zpx)
