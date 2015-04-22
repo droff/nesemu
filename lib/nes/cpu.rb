@@ -20,50 +20,119 @@ module NES
         @reg = Register.new
         @memory = Memory.new
         @cycles = 0
+        @labels = {}
         reset
       end
 
       def reset
-        @reg.pc = 0x0200
-        @reg.sp = 0x01ff
+        @reg.b = 1
+        @reg.pc = @memory.fetch16(0xfffc)
+        @reg.sp = 0xff
       end
 
-      def execute(code)
-        code = code.split('\n')
-        assemble(code)
+      def execute(options = {})
+        if options[:dump]
+          options[:dump].each_with_index { |e, i| @memory.store(0x0200 + i, e) }
+        else
+          code = options[:code].split('\n')
+          assemble(code)
+        end
+        
+        puts '-' * 15
+        disassemble
 
-        # BRK
-        @memory.store(@reg.pc, 0)
-        @reg.pc += 1
-        @reg.b = 1
+        run
       end
 
       def dump
-        puts "A=#{hex(@reg.a)} X=#{hex(@reg.x)} Y=#{hex(@reg.y)}"
-        puts "SP=#{hex(@reg.sp)}"
-        puts "PC=#{hex(@reg.pc)}"
-        puts "NV-BDIZC"
-        puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
-        puts '-----------------------------------'
-        puts @memory.dump(0x0200, @reg.pc)
-        puts @memory.dump(0x01fa, 0x01ff + 2)
+        puts '-' * 15
+        @reg.dump
+        print_flags
+        puts '-' * 15
+        puts @memory.dump(0x0200, 0xf)
+        puts @memory.dump(0x01fa, 5)
       end
 
       def assemble(code)
         code.each do |line|
+          puts line
           command, param = line.upcase.split(' ')
-          mode, value, size = check_param(param)
+          
+          if command =~ /^\w+:$/
+            @labels[command.gsub(':', '')] = @reg.pc
+          else
+            mode, value, size = check_param(param)
 
-          opcode = get_opcode(command, mode)
-          @memory.store(@reg.pc, opcode)
+            opcode = get_opcode(command, mode)
+            @reg.pc = @memory.store(@reg.pc, opcode)
+
+            address = check_mode(mode, value) unless value.nil?
+          end
+        end
+      end
+
+      def disassemble
+        @reg.pc = 0x0200
+
+        loop do
+          data = @memory.fetch(@reg.pc)
+          nxt = @memory.fetch(@reg.pc + 1)
+          break if (data == 0) && (nxt == 0)
+
+          opcode, mode = find_opcode(data)
+          size = SIZE[mode]
           @reg.pc += 1
 
-          address = check_mode(mode, value) unless value.nil?
-
-          if value
-            self.send(command.downcase.to_sym, address)
+          case size
+          when 2
+            value = @memory.fetch(@reg.pc)
+          when 3
+            value = @memory.fetch16(@reg.pc)
           else
-            self.send(command.downcase.to_sym)
+            value = nil
+          end
+
+          puts "$#{@reg.pc.to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}"
+
+          @reg.pc += size - 1
+        end
+      end
+
+      def run(options = {})
+        @reg.pc = 0x0200
+        loop do
+          data = @memory.fetch(@reg.pc)
+          nxt = @memory.fetch(@reg.pc + 1)
+          break if (data == 0) && (nxt == 0)
+
+          opcode, mode = find_opcode(data)
+          size = SIZE[mode]
+          @reg.pc += 1
+          
+          case size
+          when 2
+            value = @memory.fetch(@reg.pc)
+          when 3
+            value = @memory.fetch16(@reg.pc)
+          else
+            value = nil
+          end
+
+          address = check_mode(mode, value)
+          puts opcode, mode
+
+          if address
+            self.send(opcode.downcase.to_sym, address)
+          else
+            self.send(opcode.downcase.to_sym)
+          end
+
+          @reg.pc += size - 1
+
+          if options[:steps]
+            puts "!\t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
+            dump
+            gets
           end
         end
       end
@@ -71,6 +140,7 @@ module NES
       private
 
       def get_opcode(command, mode)
+        mode = nil if mode == 10
         if mode
           OPCODE_LIST[command][mode]
         else
@@ -95,7 +165,11 @@ module NES
       end
 
       def hex(value)
-        (value > 0xff ? "%04X" : "%02X") % value
+        if value
+          (value > 0xff ? "%04X" : "%02X") % value
+        else
+          ""
+        end
       end
 
       def check_param(param)
@@ -120,67 +194,62 @@ module NES
           [8, byte(param), 2]
         when MODE[:idy]
           [9, byte(param), 2]
+        when MODE[:imp]
+          [10, nil, 1]
+        when MODE[:rel]
+          [11, @labels[param], 3]
         else
           [nil, nil, nil]
         end
       end
 
       def check_mode(mode, value)
-        mode_keys = MODE.keys
         address = @reg.pc
 
         case mode
-        when mode_keys.index(:imm)
-          @memory.store(@reg.pc, value)
-          @reg.pc += 1
-        when mode_keys.index(:zpg)
-          address = lo(value)
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-        when mode_keys.index(:zpx)
-          @memory.store(@reg.pc, lo(value + @reg.x))
-          @reg.pc += 1
-        when mode_keys.index(:zpy)
-          @memory.store(@reg.pc, lo(value + @reg.y))
-          @reg.pc += 1
-        when mode_keys.index(:abs)
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
-        when mode_keys.index(:abx)
+        when :imm
+          value = value
+        when :zpg
+          address = value
+        when :zpx
+          address = lo(value + @reg.x)
+        when :zpy
+          address = lo(value + @reg.y)
+        when :abs
+          value = [lo(value), hi(value)]
+        when :abx
           value += @reg.x
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
-        when mode_keys.index(:aby)
+          value = [lo(value), hi(value)]
+        when :aby
           value += @reg.y
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
-        when mode_keys.index(:ind)
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
-        when mode_keys.index(:idx)
+          value = [lo(value), hi(value)]
+        when :ind
+          value = [lo(value), hi(value)]
+        when :idx
           value += @reg.x
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
-        when mode_keys.index(:idy)
+          value = [lo(value), hi(value)]
+        when :idy
           value += @reg.y
-          @memory.store(@reg.pc, lo(value))
-          @reg.pc += 1
-          @memory.store(@reg.pc, hi(value))
-          @reg.pc += 1
+          value = [lo(value), hi(value)]
+        when :imp
+          address = nil
+        when :rel
+          value = check_label(value)
         else
         end
 
+        #@reg.pc = @memory.store(@reg.pc, value)
         address
+      end
+
+      def check_label(value)
+        value -= @reg.pc
+        value < 0 ? 0xff + value : value
+      end
+
+      def print_flags
+        puts "NV-BDIZC"
+        puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
       end
     end
   end

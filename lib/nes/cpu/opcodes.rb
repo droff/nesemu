@@ -9,7 +9,24 @@ module Opcodes
     aby: /^\$[0-9A-F]{4}\,Y$/,
     ind: /^\(\$[0-9A-F]{4}\)$/,
     idx: /^\(\$[0-9A-F]{2}\,X\)$/,
-    idy: /^\(\$[0-9A-F]{2}\)\,Y$/
+    idy: /^\(\$[0-9A-F]{2}\)\,Y$/,
+    imp: /^$/,
+    rel: /^\w+$/
+  }
+
+  SIZE = {
+    imm: 2,
+    zpg: 2,
+    zpx: 2,
+    zpy: 2,
+    abs: 3,
+    abx: 3,
+    aby: 3,
+    ind: 3,
+    idx: 2,
+    idy: 2,
+    imp: 1,
+    rel: 2
   }
 
   OPCODE_LIST= {
@@ -70,4 +87,9 @@ module Opcodes
     'STX' => [ nil, 0x86,  nil, 0x96, 0x8e,  nil,  nil,  nil,  nil,  nil,  nil,  nil],
     'STY' => [ nil, 0x84, 0x94,  nil, 0x8c,  nil,  nil,  nil,  nil,  nil,  nil,  nil]
   }
+
+  def find_opcode(value)
+    OPCODE_LIST.select { |k,v| v.include?(value) }
+      .map { |k,v| [k, MODE.keys[v.index(value)]] }.flatten
+  end
 end

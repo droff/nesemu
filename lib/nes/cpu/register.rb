@@ -9,7 +9,7 @@ class Register
     @y = 0   # Y: INDEX
     @p = 0   # P: PROCESSOR STATUS
     @sp = 0  # S: STACK POINTER
-    @pc = 0x0600  # PC: PROGRAM COUNTER (16-bit)
+    @pc = 0  # PC: PROGRAM COUNTER (16-bit)
 
     @c = 0
     @z = 0
@@ -19,5 +19,10 @@ class Register
     @u = 0
     @v = 0
     @n = 0
+  end
+
+  def dump
+    puts "A=#{@a.to_hex} X=#{@x.to_hex} Y=#{@y.to_hex}"
+    puts "SP=#{@sp.to_hex} PC=#{@pc.to_hex}"
   end
 end

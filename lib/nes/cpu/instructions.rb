@@ -1,4 +1,215 @@
 module Instructions
+  def adc(address)
+    a = @reg.a
+    m = @memory.fetch(address)
+    c = @reg.c
+    t = a + m + c
+
+    @reg.v = ( ((a >> 7) & 1) != ((t >> 7) & 1) ) ? 1 : 0
+    if @reg.d == 1
+      t = bcd(a) + bcd(m) + c
+      @reg.c = (t > 99) ? 1 : 0
+    else
+      @reg.c = (t > 0xff) ? 1 : 0
+    end
+    @reg.a = t & 0xff
+    setzn(@reg.a)
+  end
+
+  def and(address)
+    @reg.a &= @memory.fetch(address)
+    setzn(@reg.a)
+  end
+
+  def asl(address)
+    m = @memory.fetch(address)
+    setc(lo(m))
+    m = (m << 1) & 0xfe
+    setzn(m)
+  end
+
+  def bcc(address)
+    m = @memory.fetch(address)
+
+    if @reg.c == 0
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def bcs(address)
+    m = @memory.fetch(address)
+
+    if @reg.c == 1
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def beq(address)
+    m = @memory.fetch(address)
+
+    if @reg.z == 1
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def bit(address)
+    m = @memory.fetch(address)
+    @reg.v = (m >> 6) & 1
+    setz(m & @reg.a)
+    setn(m)
+  end
+
+  def bmi(address)
+    m = @memory.fetch(address)
+
+    if @reg.n == 1
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def bne(address)
+    m = @memory.fetch(address)
+
+    if @reg.z == 0
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def bpl(address)
+    m = @memory.fetch(address)
+
+    if @reg.n == 0
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def brk
+    @reg.b = 1
+    push16(@reg.pc)
+    php
+    sei
+    @reg.pc = @memory.fetch16(0xfffe)
+  end
+
+  def bvc(address)
+    m = @memory.fetch(address)
+
+    if @reg.v == 0
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def bvs(address)
+    m = @memory.fetch(address)
+
+    if @reg.v == 1
+      offset = check_branch(m) - 1
+      @reg.pc += offset
+    end
+  end
+
+  def clc
+    @reg.c = 0
+  end
+
+  def cld
+    @reg.d = 0
+  end
+
+  def cli
+    @reg.i = 0
+  end
+
+  def clv
+    @reg.v = 0
+  end
+
+  def cmp(address)
+    m = @memory.fetch(address)
+    t = @reg.a - m
+    @reg.c = (@reg.a >= m) ? 1 : 0
+    setzn(t)
+  end
+
+  def cpx(address)
+    m = @memory.fetch(address)
+    t = @reg.x - m
+    @reg.c = (@reg.x >= m) ? 1 : 0
+    setzn(t)
+  end
+
+  def cpy(address)
+    m = @memory.fetch(address)
+    t = @reg.y - m
+    @reg.c = (@reg.y >= m) ? 1 : 0
+    setzn(t)
+  end
+
+  def dec(address)
+    m = @memory.fetch(address)
+    t = (m - 1) & 0xff
+    @memory.store(address, t)
+    setzn(t)
+  end
+
+  def dex
+    @reg.x -= 1
+    setzn(@reg.x)
+  end
+
+  def dey
+    @reg.y -= 1
+    setzn(@reg.y)
+  end
+
+  def eor(address)
+    m = @memory.fetch(address)
+    @reg.a ^= m
+    setzn(@reg.a)
+  end
+
+  def inc(address)
+    m = @memory.fetch(address)
+    t = (m + 1) & 0xff
+    @memory.store(address, t)
+    setzn(t)
+  end
+
+  def inx
+    @reg.x += 1
+    setzn(@reg.x)
+  end
+
+  def iny
+    @reg.y += 1
+    setzn(@reg.y)
+  end
+
+  def irq
+    push16(@reg.pc)
+    php
+    @reg.pc = @memory.fetch16(0xfffe)
+    @reg.i = 1
+    @cycles += 7
+  end
+
+  def jmp(address)
+    @reg.pc = @memory.fetch(address)
+  end
+
+  def jsr(address)
+    t = @reg.pc - 1
+    push16(t)
+    @reg.pc = 0xa5b6 
+  end
+
   def lda(address)
     @reg.a = @memory.fetch(address)
     setzn(@reg.a)
@@ -12,6 +223,109 @@ module Instructions
   def ldy(address)
     @reg.y = @memory.fetch(address)
     setzn(@reg.y)
+  end
+
+  def lsr(address)
+    m = @memory.fetch(address)
+    t = (m >> 1) & 0x7f
+    @reg.n = 0
+    @reg.c = (m >> 0) & 1
+    @memory.store(address, t)
+    setz(t)
+  end
+
+  def nmi
+    push16(@reg.pc)
+    php
+    @reg.opc = @memory.fetch16(0xfffa)
+    @reg.i = 1
+    @cycles += 7
+  end
+
+  def nop
+  end
+
+  def ora(address)
+    m = @memory.fetch(address)
+    @reg.a |= m
+    setzn(@reg.a) 
+  end
+
+  def pha
+    push(@reg.a)
+  end
+
+  def php
+    push(@reg.p)
+  end
+
+  def pla
+    @reg.a = pop
+    setzn(@reg.a)
+  end
+
+  def plp
+    @reg.p = pop
+  end
+
+  def rol(address)
+    m = @memory.fetch(address)
+    t = (m >> 7) & 1
+    m = (m << 1) & 0xfe
+    m |= @reg.c
+    @reg.c = t
+    setzn(m)
+  end
+
+  def ror(address)
+    m = @memory.fetch(address)
+    t = (m >> 0) & 1
+    m = (m >> 1) & 0x7f
+    m |= (@reg.c == 1) ? 0x80 : 0
+    @reg.c = t
+    setzn(m)
+  end
+
+  def rti
+    @reg.p = pop
+    l = pop
+    h = pop << 8
+    @reg.pc = h | l
+  end
+
+  def rts
+    l = pop
+    h = pop << 8
+    @reg.pc = (h | l) + 1  
+  end
+
+  def sbc(address)
+    a = @reg.a
+    m = @memory.fetch(address)
+    c = @reg.c
+
+    if @reg.d == 1
+      t = bcd(a) - bcd(m) - (1 - c)
+      @reg.v = (t.between?(0, 99)) ? 1 : 0
+    else
+      t = a - m - (1 - c)
+      @reg.v = (t.between?(0x7f, 0xff)) ? 1 : 0
+    end
+    @reg.c = (t >= 0) ? 1 : 0
+    @reg.a = t & 0xff
+    setzn(@reg.a)
+  end
+
+  def sec
+    @reg.c = 1
+  end
+
+  def sed
+    @reg.d = 1
+  end
+
+  def sei
+    @reg.i = 1
   end
 
   def sta(address)
@@ -36,9 +350,18 @@ module Instructions
     setzn(@reg.y)
   end
 
+  def tsx
+    @reg.x = @reg.sp
+    setzn(@reg.x)
+  end
+
   def txa
     @reg.a = @reg.x
     setzn(@reg.a)
+  end
+
+  def txs
+    @reg.sp = @reg.x
   end
 
   def tya
@@ -46,309 +369,11 @@ module Instructions
     setzn(@reg.a)
   end
 
-  def tsx
-    @reg.x = @reg.s
-    setzn(@reg.x)
-  end
-
-  def txs
-    @reg.s = @reg.x
-    setzn(@reg.s)
-  end
-
-  def pha
-    @reg.s = @reg.a
-  end
-
-  def php
-    #@reg.s = @reg.p
-  end
-
-  def pla
-    @reg.a = @reg.s
-  end
-
-  def plp
-    @reg.p = @reg.s
-  end
-
-  def and(address)
-    @reg.a &= @memory.fetch(address)
-    setzn(@reg.a)
-  end
-
-  def eor(address)
-    @reg.a ^= @memory.fetch(address)
-    setzn(@reg.a)
-  end
-
-  def ora(address)
-    @reg.a |= @memory.fetch(address)
-  end
-
-  def bit(address)
-    value = @memory.fetch(address)
-    @reg.v = (value >> 6) & 1
-    setz(value & @reg.a)
-    setn(value)
-  end
-
-  def adc(address)
-    a = @reg.a
-    b = @memory.fetch(address)
-    c = @reg.c
-
-    value = a + b +c
-
-    setc(value)
-    setv(value)
-    @reg.a = value & 0xff
-    setzn(@reg.a)
-  end
-
-  def sbc(address)
-    a = @reg.a
-    b = @memory.fetch(address)
-    c = @reg.c
-
-    @reg.a = a - b - (1 - c)
-    setzn(@reg.a)
-
-    @reg.c =
-      if (a - b - (1 - c)) >= 0
-        1
-      else
-        0
-      end
-
-    @reg.v =
-      if ((a ^ b) & 0x80 != 0) && ((a ^ @reg.a) & 0x80 != 0)
-        1
-      else
-        0
-      end
-  end
-
-  def cmp(address)
-    compare(@reg.a, @memory.fetch(address))
-  end
-
-  def cpx(address)
-    compare(@reg.x, @memory.fetch(address))
-  end
-
-  def cpy(address)
-    compare(@reg.y, @memoru.fetch(address))
-  end
-
-  def inc(address)
-    value = @memory.fetch(address) + 1
-    @memory.store(address, value)
-    setzn(value)
-  end
-
-  def inx
-    @reg.x += 1
-    setzn(@reg.x)
-  end
-
-  def iny
-    @reg.y += 1
-    setzn(@reg.y)
-  end
-
-  def dec(address)
-    value = @memory.fetch(address) - 1
-    @memory.store(address, value)
-    setzn(value)
-  end
-
-  def dex
-    @reg.x -= 1
-    setzn(@reg.x)
-  end
-
-  def dey
-    @reg.y -= 1
-    setzn(@reg.y)
-  end
-
-  def asl(address)
-    if mode_acc?
-      @reg.c = (@reg.a >> 7) & 1
-      @reg.a <<= 1
-      setzn(@reg.a)
-    else
-      value = @memory.fetch(address)
-      @reg.c = (value >> 7) & 1
-      value <<= 1
-      @memory.store(address, value)
-      setzn(value)
-    end
-  end
-
-  def lsr(address)
-    if mode_acc?
-      @reg.c = @reg.a & 1
-      @reg.a >>= 1
-      setzn(@reg.a)
-    else
-      value = @memory.fetch(address)
-      @reg.c = value & 1
-      value >>= 1
-      @memory.store(address, value)
-      setzn(value)
-    end
-  end
-
-  def rol(address)
-    c = @reg.c
-
-    if mode_acc?
-      @reg.c = (@reg.a >> 7) & 1
-      @reg.a = (@reg.a << 1) | c
-      setzn(@reg.a)
-    else
-      value = @memory.fetch(address)
-      @reg.c = (value >> 7) & 1
-      value = (value << 1) | c
-      @memory.store(address, value)
-      setzn(value)
-    end
-  end
-
-  def ror(address)
-    c = @reg.c
-
-    if mode_acc?
-      @reg.c = @reg.a & 1
-      @reg.a = (@reg.a >> 1) | (c << 7)
-      setzn(@reg.a)
-    else
-      value = @memory.fetch(address)
-      @reg.c = value & 1
-      value = (value >> 1) | (c << 7)
-      @memory.store(address, value)
-      setzn(value)
-    end
-  end
-
-  def jmp(address)
-    @reg.pc = address
-  end
-
-  def jsr(address)
-    push16(@reg.pc - 1)
-    @reg.pc = address
-  end
-
-  def rts(address)
-    @reg.pc = pop16 + 1
-  end
-
-  def bcc(address)
-    if @reg.c == 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bcs(address)
-    if @reg.c != 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def beq(address)
-    if @reg.z != 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bmi(address)
-    if @reg.n != 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bne(address)
-    if @reg.z == 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bpl(address)
-    if @reg.n == 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bvc(address)
-    if @reg.v == 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def bvs(address)
-    if @reg.v != 0
-      @reg.pc = address
-      add_cycles(address)
-    end
-  end
-
-  def clc
-    @reg.c = 0
-  end
-
-  def cld
-    @reg.d = 0
-  end
-
-  def cli
-    @reg.i = 0
-  end
-
-  def clv
-    @reg.v = 0
-  end
-
-  def sec
-    @reg.c = 1
-  end
-
-  def sed
-    @reg.d = 1
-  end
-
-  def sei
-    @reg.i = 1
-  end
-
-  def brk
-    push16(@reg.pc)
-    php
-    sei
-  end
-
-  def nop(address)
-  end
-
-  def rti(address)
-    set_flags(pull & 0xef | 0x20)
-    @reg.pc = pop16
-  end
-
   private
 
-  def to_bcd(value)
+  def bcd(value)
     value.divmod(16).reverse.each_with_index
-      .inject(0) {|sum, (e, i)| sum + (e * 10**i)}
+      .inject(0) { |sum, (e, i)| sum + (e * 10**i) }
   end
 
   def diff(a, b)
@@ -357,33 +382,37 @@ module Instructions
 
   def add_cycles(address)
     @cycles += 1
-    @cycles += 1 if diff(@reg.pc, @reg.address)
+    @cycles += 1 if diff(@reg.pc, address)
   end
 
-  def push16(value)
-    hi = value >> 8
-    lo = value & 0xff
-    push(hi)
-    push(lo)
+  def get_flags
+    value = 0
+
+    value |= @reg.c << 0
+    value |= @reg.z << 1
+    value |= @reg.i << 2
+    value |= @reg.d << 3
+    value |= @reg.b << 4
+    value |= @reg.u << 5
+    value |= @reg.v << 6
+    value |= @reg.n << 7
+
+    value
   end
 
-  def pop16
-    lo = pop
-    hi = pop
-    hi << 8 | lo
-  end
-
-  def compare(a, b)
-    setzn(a - b)
-    @reg.c = (a >= b) ? 1 : 0
+  def set_flags(value)
+    @reg.c = (value >> 0) & 1
+    @reg.z = (value >> 1) & 1
+    @reg.i = (value >> 2) & 1
+    @reg.d = (value >> 3) & 1
+    @reg.b = (value >> 4) & 1
+    @reg.u = (value >> 5) & 1
+    @reg.v = (value >> 6) & 1
+    @reg.n = (value >> 7) & 1
   end
 
   def setc(value)
     @reg.c = (value > 0xff) ? 1 : 0
-  end
-
-  def setv(value)
-    @reg.v = value.between?(0x80, 0xff) ? 1 : 0
   end
 
   def setz(value)
@@ -391,11 +420,19 @@ module Instructions
   end
 
   def setn(value)
-    @reg.n = (value < 0) ? 1 : 0
+    @reg.n = (value >> 7) & 1
   end
 
   def setzn(value)
     setz(value)
     setn(value)
+  end
+
+  def check_branch(value)
+    if value.between?(0x00, 0x7f)
+      value
+    else
+      -(0xff - value)
+    end
   end
 end
