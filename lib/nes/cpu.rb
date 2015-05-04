@@ -3,7 +3,7 @@ require_relative 'cpu/opcodes'
 require_relative 'cpu/register'
 require_relative 'cpu/stack'
 ##
-#
+# NES module
 module NES
   ##
   # CPU 6502 implementation
@@ -27,7 +27,7 @@ module NES
       def reset
         @reg.b = 1
         @reg.pc = @memory.fetch16(0xfffc)
-        @reg.sp = 0xff
+        @reg.sp = 0xfd
       end
 
       def execute(options = {})
@@ -38,22 +38,25 @@ module NES
           assemble(code)
         end
         
-        puts '-' * 15
+        puts 'D' * 15
         disassemble
+        puts @memory.dump(0x0200, 0xf)
 
-        run
+        run steps: false
       end
 
       def dump
-        puts '-' * 15
+        puts 'R' * 15
         @reg.dump
         print_flags
-        puts '-' * 15
+        puts 'M' * 15
         puts @memory.dump(0x0200, 0xf)
-        puts @memory.dump(0x01fa, 5)
+        puts @memory.dump(0x01fa, 0x4)
       end
 
       def assemble(code)
+        @reg.pc = 0x0200
+
         code.each do |line|
           puts line
           command, param = line.upcase.split(' ')
@@ -66,7 +69,13 @@ module NES
             opcode = get_opcode(command, mode)
             @reg.pc = @memory.store(@reg.pc, opcode)
 
-            address = check_mode(mode, value) unless value.nil?
+            if value
+              if value > 0xff
+                @reg.pc = @memory.store(@reg.pc, [lo(value), hi(value)])
+              else
+                @reg.pc = @memory.store(@reg.pc, value)
+              end
+            end
           end
         end
       end
@@ -102,8 +111,9 @@ module NES
         @reg.pc = 0x0200
         loop do
           data = @memory.fetch(@reg.pc)
-          nxt = @memory.fetch(@reg.pc + 1)
-          break if (data == 0) && (nxt == 0)
+          #nxt = @memory.fetch(@reg.pc + 1)
+          #break if (data == 0) && (nxt == 0)
+          break if @reg.i == 1
 
           opcode, mode = find_opcode(data)
           size = SIZE[mode]
@@ -119,7 +129,6 @@ module NES
           end
 
           address = check_mode(mode, value)
-          puts opcode, mode
 
           if address
             self.send(opcode.downcase.to_sym, address)
@@ -127,13 +136,13 @@ module NES
             self.send(opcode.downcase.to_sym)
           end
 
-          @reg.pc += size - 1
-
           if options[:steps]
             puts "!\t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
             dump
             gets
           end
+
+          @reg.pc += size - 1
         end
       end
 

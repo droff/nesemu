@@ -90,7 +90,6 @@ module Instructions
   end
 
   def brk
-    @reg.b = 1
     push16(@reg.pc)
     php
     sei
@@ -429,10 +428,6 @@ module Instructions
   end
 
   def check_branch(value)
-    if value.between?(0x00, 0x7f)
-      value
-    else
-      -(0xff - value)
-    end
+    value.between?(0x00, 0x7f) ? value : -(0xff - value)
   end
 end
