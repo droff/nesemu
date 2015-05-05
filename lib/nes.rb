@@ -17,4 +17,3 @@ end
 
 Fixnum.include(NESMP)
 NilClass.include(NESMP)
-

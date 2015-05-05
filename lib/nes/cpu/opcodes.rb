@@ -88,7 +88,7 @@ module Opcodes
     'STY' => [ nil, 0x84, 0x94,  nil, 0x8c,  nil,  nil,  nil,  nil,  nil,  nil,  nil]
   }
 
-  def find_opcode(value)
+  def find_mnemonic(value)
     OPCODE_LIST.select { |k,v| v.include?(value) }
       .map { |k,v| [k, MODE.keys[v.index(value)]] }.flatten
   end

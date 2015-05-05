@@ -27,7 +27,7 @@ module NES
       def reset
         @reg.b = 1
         @reg.pc = @memory.fetch16(0xfffc)
-        @reg.sp = 0xfd
+        @reg.sp = 0xff
       end
 
       def execute(options = {})
@@ -37,21 +37,26 @@ module NES
           code = options[:code].split('\n')
           assemble(code)
         end
-        
-        puts 'D' * 15
+
+        puts "Disassemble#{'-' * 15}"
         disassemble
         puts @memory.dump(0x0200, 0xf)
 
-        run steps: false
+        #run steps: false
+        @reg.pc = 0x0200
+        loop do
+          break if @reg.i == 1
+          step
+        end
       end
 
       def dump
-        puts 'R' * 15
+        puts "Registers#{'-' * 15}"
         @reg.dump
         print_flags
-        puts 'M' * 15
+        puts "Memory#{'-' * 15}"
         puts @memory.dump(0x0200, 0xf)
-        puts @memory.dump(0x01fa, 0x4)
+        puts @memory.dump(0x01fa, 0x5)
       end
 
       def assemble(code)
@@ -60,7 +65,7 @@ module NES
         code.each do |line|
           puts line
           command, param = line.upcase.split(' ')
-          
+
           if command =~ /^\w+:$/
             @labels[command.gsub(':', '')] = @reg.pc
           else
@@ -88,7 +93,7 @@ module NES
           nxt = @memory.fetch(@reg.pc + 1)
           break if (data == 0) && (nxt == 0)
 
-          opcode, mode = find_opcode(data)
+          opcode, mode = find_mnemonic(data)
           size = SIZE[mode]
           @reg.pc += 1
 
@@ -107,18 +112,16 @@ module NES
         end
       end
 
-      def run(options = {})
+      def run1(options = {})
         @reg.pc = 0x0200
         loop do
           data = @memory.fetch(@reg.pc)
-          #nxt = @memory.fetch(@reg.pc + 1)
-          #break if (data == 0) && (nxt == 0)
           break if @reg.i == 1
 
-          opcode, mode = find_opcode(data)
+          opcode, mode = find_mnemonic(data)
           size = SIZE[mode]
           @reg.pc += 1
-          
+
           case size
           when 2
             value = @memory.fetch(@reg.pc)
@@ -137,7 +140,7 @@ module NES
           end
 
           if options[:steps]
-            puts "!\t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
+            puts "STEP: \t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
             dump
             gets
           end
@@ -146,7 +149,39 @@ module NES
         end
       end
 
+      def step
+        instruction = read_instuction
+        @reg.pc += instruction.size
+        exec_instruction(instruction)
+      end
+
       private
+
+      def read_instuction
+        i = Instruction.new
+        i.opcode = @memory.fetch(@reg.pc)
+        i.mnemonic, i.mode = find_mnemonic(i.opcode)
+        i.size = SIZE[i.mode]        
+        i.value =
+          case i.size
+          when 2
+            @memory.fetch(@reg.pc + 1)
+          when 3
+            @memory.fetch16(@reg.pc + 1)
+          else
+            nil
+          end
+        i.address = check_mode(i.mode, i.value)
+        i
+      end
+
+      def exec_instruction(instruction)
+        if instruction.address
+          self.send(instruction.mnemonic.downcase.to_sym, instruction.address)
+        else
+          self.send(instruction.mnemonic.downcase.to_sym)
+        end
+      end
 
       def get_opcode(command, mode)
         mode = nil if mode == 10
@@ -213,7 +248,7 @@ module NES
       end
 
       def check_mode(mode, value)
-        address = @reg.pc
+        address = @reg.pc + 1
 
         case mode
         when :imm

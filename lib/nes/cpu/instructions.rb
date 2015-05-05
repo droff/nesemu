@@ -1,4 +1,11 @@
 module Instructions
+
+  Instruction = Struct.new(:opcode, :mode, :mnemonic, :value, :size, :address) do
+    def to_s
+      "#{opcode.to_hex} #{mode} #{mnemonic} #{value.to_hex} #{size} #{address.to_hex}"
+    end
+  end
+
   def adc(address)
     a = @reg.a
     m = @memory.fetch(address)
@@ -206,7 +213,7 @@ module Instructions
   def jsr(address)
     t = @reg.pc - 1
     push16(t)
-    @reg.pc = 0xa5b6 
+    @reg.pc = 0xa5b6
   end
 
   def lda(address)
@@ -247,7 +254,7 @@ module Instructions
   def ora(address)
     m = @memory.fetch(address)
     @reg.a |= m
-    setzn(@reg.a) 
+    setzn(@reg.a)
   end
 
   def pha
@@ -295,7 +302,7 @@ module Instructions
   def rts
     l = pop
     h = pop << 8
-    @reg.pc = (h | l) + 1  
+    @reg.pc = (h | l) + 1
   end
 
   def sbc(address)

@@ -5,7 +5,7 @@ def to_dump(a)
   a.map { |e| e.to_i(16) }
 end
 
-code1 = 
+code1 =
   'LDA #$01',
   'TAX',
   'ADC #$c4',
@@ -20,5 +20,5 @@ dump2 = to_dump(%w(a9 80 85 01 65 01))
 dump3 = to_dump(%w(a9 01 c9 02 d0 02 85 22 00))
 
 CPU.init
-CPU.execute(code: code1.join('\n'), dump: nil)
+CPU.execute(code: code1.join('\n'), dump: dump2)
 CPU.dump
