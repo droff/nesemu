@@ -6,11 +6,23 @@ def to_dump(a)
 end
 
 code1 =
+	'label:',
   'LDA #$01',
   'TAX',
   'ADC #$c4',
   'LDY $0601',
   'INX'
+  #'BNE label'
+
+code2 =
+	'LDX #$08',
+	'decrement:',
+  'DEX',
+  'STX $0200',
+  'CPX #$03',
+  'BNE decrement',
+  'STX $0201',
+  'BRK'
 
 # decrement X loop
 dump1 = to_dump(%w(a2 08 ca 8e 00 02 e0 03 d0 f8 8e 01 02 00))
@@ -20,5 +32,7 @@ dump2 = to_dump(%w(a9 80 85 01 65 01))
 dump3 = to_dump(%w(a9 01 c9 02 d0 02 85 22 00))
 
 CPU.init
-CPU.execute(code: code1.join('\n'), dump: dump2)
-CPU.dump
+puts CPU.assemble(code1).map { |e| e.to_hex }.join(' ')
+#CPU.load(dump2)
+#CPU.execute
+#CPU.dump

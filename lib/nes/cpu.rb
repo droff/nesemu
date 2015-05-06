@@ -28,64 +28,62 @@ module NES
         @reg.b = 1
         @reg.pc = @memory.fetch16(0xfffc)
         @reg.sp = 0xff
+        @reg.pc = 0x0200
       end
 
-      def execute(options = {})
-        if options[:dump]
-          options[:dump].each_with_index { |e, i| @memory.store(0x0200 + i, e) }
-        else
-          code = options[:code].split('\n')
-          assemble(code)
-        end
+      def load(data)
+        data.each_with_index { |e, i| @memory.store(0x0200 + i, e) }
+      end
 
-        puts "Disassemble#{'-' * 15}"
-        disassemble
-        puts @memory.dump(0x0200, 0xf)
-
-        #run steps: false
-        @reg.pc = 0x0200
+      def execute
         loop do
-          break if @reg.i == 1
-          step
+          puts step
+          sleep 1
         end
       end
 
       def dump
-        puts "Registers#{'-' * 15}"
-        @reg.dump
-        print_flags
-        puts "Memory#{'-' * 15}"
+        puts '-' * 35
+        puts @reg.dump_registers
+        puts @reg.dump_flags
         puts @memory.dump(0x0200, 0xf)
         puts @memory.dump(0x01fa, 0x5)
       end
 
       def assemble(code)
-        @reg.pc = 0x0200
+        data = []
+        index = 0
 
         code.each do |line|
-          puts line
+          @reg.pc = index
+
           command, param = line.upcase.split(' ')
 
           if command =~ /^\w+:$/
             @labels[command.gsub(':', '')] = @reg.pc
-          else
-            mode, value, size = check_param(param)
+            next
+          end
 
-            opcode = get_opcode(command, mode)
-            @reg.pc = @memory.store(@reg.pc, opcode)
+          mode, value, size = check_param(param)
+          data << get_opcode(command, mode)
+          index += 1
 
-            if value
-              if value > 0xff
-                @reg.pc = @memory.store(@reg.pc, [lo(value), hi(value)])
-              else
-                @reg.pc = @memory.store(@reg.pc, value)
-              end
+          unless value.nil?
+            if value > 0xff
+              data << lo(value)
+              data << hi(value)
+              index += 2
+            else
+              data << value
+              index += 1
             end
           end
         end
+
+        data
       end
 
-      def disassemble
+      def disassemble(data)
         @reg.pc = 0x0200
 
         loop do
@@ -112,47 +110,20 @@ module NES
         end
       end
 
-      def run1(options = {})
-        @reg.pc = 0x0200
-        loop do
-          data = @memory.fetch(@reg.pc)
-          break if @reg.i == 1
-
-          opcode, mode = find_mnemonic(data)
-          size = SIZE[mode]
-          @reg.pc += 1
-
-          case size
-          when 2
-            value = @memory.fetch(@reg.pc)
-          when 3
-            value = @memory.fetch16(@reg.pc)
-          else
-            value = nil
-          end
-
-          address = check_mode(mode, value)
-
-          if address
-            self.send(opcode.downcase.to_sym, address)
-          else
-            self.send(opcode.downcase.to_sym)
-          end
-
-          if options[:steps]
-            puts "STEP: \t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
-            dump
-            gets
-          end
-
-          @reg.pc += size - 1
-        end
-      end
-
-      def step
+      def step(options = {})
+        cpu_cycles = @cycles
         instruction = read_instuction
         @reg.pc += instruction.size
         exec_instruction(instruction)
+        @cycles += CYCLES[instruction.opcode]
+
+        if options[:steps]
+          puts "STEP: \t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
+          dump
+          gets
+        end
+
+        @cycles - cpu_cycles
       end
 
       private
@@ -208,14 +179,6 @@ module NES
         value >> 8
       end
 
-      def hex(value)
-        if value
-          (value > 0xff ? "%04X" : "%02X") % value
-        else
-          ""
-        end
-      end
-
       def check_param(param)
         case param
         when MODE[:imm]
@@ -241,7 +204,7 @@ module NES
         when MODE[:imp]
           [10, nil, 1]
         when MODE[:rel]
-          [11, @labels[param], 3]
+          [11, check_label(@labels[param]), 3]
         else
           [nil, nil, nil]
         end
@@ -287,13 +250,8 @@ module NES
       end
 
       def check_label(value)
-        value -= @reg.pc
+        value -= @reg.pc + 1
         value < 0 ? 0xff + value : value
-      end
-
-      def print_flags
-        puts "NV-BDIZC"
-        puts "#{@reg.n}#{@reg.v}1#{@reg.b}#{@reg.d}#{@reg.i}#{@reg.z}#{@reg.c}"
       end
     end
   end

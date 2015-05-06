@@ -21,8 +21,13 @@ class Register
     @n = 0
   end
 
-  def dump
-    puts "A=#{@a.to_hex} X=#{@x.to_hex} Y=#{@y.to_hex}"
-    puts "SP=#{@sp.to_hex} PC=#{@pc.to_hex}"
+  def dump_registers
+    "A=#{@a.to_hex} X=#{@x.to_hex} Y=#{@y.to_hex}\n" \
+    "SP=#{@sp.to_hex} PC=#{@pc.to_hex}"
+  end
+
+  def dump_flags
+    "NV-BDIZC\n" \
+    "#{@n}#{@v}1#{@b}#{@d}#{@i}#{@z}#{@c}"
   end
 end
