@@ -11,7 +11,7 @@ module NES
     def fetch16(address)
       lo = fetch(address)
       hi = fetch(address + 1)
-      hi << 8 | lo
+      (hi << 8) | lo
     end
 
     def store(address, value)

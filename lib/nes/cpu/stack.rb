@@ -2,13 +2,14 @@ module NES
   private
 
   def push(value)
-    @memory.store(0x0100 + @reg.sp, value)
-    @reg.sp -= 1
+    @memory.store(@reg.sp, value)
+    @reg.sp -= 1 if @reg.sp > 0x0100
   end
 
   def pop
-    value = @memory.fetch(0x0100 + @reg.sp)
-    @reg.sp += 1
+    value = @memory.fetch(@reg.sp)
+    @reg.sp += 1 if @reg.pc < 0x01ff
+    value
   end
 
   def push16(value)

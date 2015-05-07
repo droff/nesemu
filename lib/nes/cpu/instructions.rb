@@ -36,30 +36,15 @@ module Instructions
   end
 
   def bcc(address)
-    m = @memory.fetch(address)
-
-    if @reg.c == 0
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.c == 0
   end
 
   def bcs(address)
-    m = @memory.fetch(address)
-
-    if @reg.c == 1
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.c == 1
   end
 
   def beq(address)
-    m = @memory.fetch(address)
-
-    if @reg.z == 1
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.z == 1
   end
 
   def bit(address)
@@ -70,31 +55,15 @@ module Instructions
   end
 
   def bmi(address)
-    m = @memory.fetch(address)
-
-    if @reg.n == 1
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.n == 1
   end
 
   def bne(address)
-    m = address#@memory.fetch(address)
-
-    if @reg.z == 0
-      @reg.pc = address
-      #offset = check_branch(m) - 1
-      #@reg.pc += offset
-    end
+    @reg.pc = address if @reg.z == 0
   end
 
   def bpl(address)
-    m = @memory.fetch(address)
-
-    if @reg.n == 0
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.n == 0
   end
 
   def brk
@@ -105,21 +74,11 @@ module Instructions
   end
 
   def bvc(address)
-    m = @memory.fetch(address)
-
-    if @reg.v == 0
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.v == 0
   end
 
   def bvs(address)
-    m = @memory.fetch(address)
-
-    if @reg.v == 1
-      offset = check_branch(m) - 1
-      @reg.pc += offset
-    end
+    @reg.pc = address if @reg.v == 1
   end
 
   def clc

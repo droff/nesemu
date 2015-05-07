@@ -27,7 +27,7 @@ module NES
       def reset
         @reg.b = 1
         @reg.pc = @memory.fetch16(0xfffc)
-        @reg.sp = 0xff
+        @reg.sp = 0x01ff
         @reg.pc = 0x0200
       end
 
@@ -36,8 +36,10 @@ module NES
       end
 
       def execute
+        @reg.pc = 0x0200
+
         loop do
-          puts @cycles -= step(debug: true)
+          @cycles -= step(debug: false)
 
           if @cycles <= 0
             @cycles += 0
@@ -50,8 +52,10 @@ module NES
         puts '-' * 35
         puts @reg.dump_registers
         puts @reg.dump_flags
+        puts @memory.dump(0x0000, 0xf)
         puts @memory.dump(0x0200, 0xf)
         puts @memory.dump(0x01fa, 0x5)
+        puts '-' * 35
       end
 
       def assemble(code)
@@ -87,15 +91,15 @@ module NES
         data
       end
 
-      def disassemble(data)
+      def disassemble
         @reg.pc = 0x0200
 
         loop do
           data = @memory.fetch(@reg.pc)
-          nxt = @memory.fetch(@reg.pc + 1)
-          break if (data == 0) && (nxt == 0)
 
           opcode, mode = find_mnemonic(data)
+          break if opcode == 'BRK'
+
           size = SIZE[mode]
           @reg.pc += 1
 
@@ -108,7 +112,9 @@ module NES
             value = nil
           end
 
-          puts "$#{@reg.pc.to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}"
+          value = @reg.pc + check_label(value) if mode == :rel
+
+          puts "$#{(@reg.pc - 1).to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}\t#{mode}"
 
           @reg.pc += size - 1
         end
@@ -120,6 +126,7 @@ module NES
         instruction = read_instuction
         cmd_cycles = CYCLES[instruction.opcode]
         extra_cycles = EXTRACYCLES[instruction.opcode]
+        p instruction
         @reg.pc += instruction.size
 
         exec_instruction(instruction)
@@ -244,16 +251,18 @@ module NES
           address += @reg.y
           crossed = diff(address - @reg.y, address)
         when :ind
-          address = value
-          #value = [lo(value), hi(value)]
+          l = @memory.fetch(value)
+          h = @memory.fetch((value + 1) & 0xff) << 8
+          address = h | l
         when :idx
-          address += lo(value + @reg.x)
-          #value += @reg.x
-          #value = [lo(value), hi(value)]
+          l = @memory.fetch(value + @reg.x)
+          h = @memory.fetch((value + @reg.x + 1) & 0xff) << 8
+          address = h | l
         when :idy
-          address += @reg.y
+          l = @memory.fetch(value)
+          h = @memory.fetch((value + 1) & 0xff) << 8
+          address = ((h | l) + @reg.y) & 0xffff
           crossed = diff(address - @reg.y, address)
-          #value = [lo(value), hi(value)]
         when :imp
           address = nil
         when :rel
@@ -261,7 +270,9 @@ module NES
         else
         end
 
-        @cycles += EXTRACYCLES[instruction.opcode] if crossed
+        if crossed
+          @cycles += EXTRACYCLES[instruction.opcode]
+        end
 
         address
       end
