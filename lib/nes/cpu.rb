@@ -37,8 +37,12 @@ module NES
 
       def execute
         loop do
-          puts step
-          sleep 1
+          puts @cycles -= step(debug: true)
+
+          if @cycles <= 0
+            @cycles += 0
+            break if @reg.i == 1
+          end
         end
       end
 
@@ -111,19 +115,24 @@ module NES
       end
 
       def step(options = {})
-        cpu_cycles = @cycles
-        instruction = read_instuction
-        @reg.pc += instruction.size
-        exec_instruction(instruction)
-        @cycles += CYCLES[instruction.opcode]
+        exec_cycles = 0
 
-        if options[:steps]
-          puts "STEP: \t#{opcode} #{mode} #{value.to_hex} #{address.to_hex}"
-          dump
+        instruction = read_instuction
+        cmd_cycles = CYCLES[instruction.opcode]
+        extra_cycles = EXTRACYCLES[instruction.opcode]
+        @reg.pc += instruction.size
+
+        exec_instruction(instruction)
+        exec_cycles += cmd_cycles + extra_cycles
+
+
+        if options[:debug]
+          puts "STEP: #{instruction.opcode.to_hex} #{instruction.mode} #{instruction.mnemonic} #{instruction.value.to_hex} #{instruction.address.to_hex}"
+          puts dump
           gets
         end
 
-        @cycles - cpu_cycles
+        exec_cycles
       end
 
       private
@@ -142,7 +151,7 @@ module NES
           else
             nil
           end
-        i.address = check_mode(i.mode, i.value)
+        i.address = check_mode(i)
         i
       end
 
@@ -210,12 +219,15 @@ module NES
         end
       end
 
-      def check_mode(mode, value)
+      def check_mode(instruction)
+        mode = instruction.mode
+        value = instruction.value
+        crossed = false
         address = @reg.pc + 1
 
         case mode
         when :imm
-          value = value
+          #address = nil
         when :zpg
           address = value
         when :zpx
@@ -223,35 +235,41 @@ module NES
         when :zpy
           address = lo(value + @reg.y)
         when :abs
-          value = [lo(value), hi(value)]
+          address = value
+          #value = [lo(value), hi(value)]
         when :abx
-          value += @reg.x
-          value = [lo(value), hi(value)]
+          address += @reg.x
+          crossed = diff(address - @reg.x, address)
         when :aby
-          value += @reg.y
-          value = [lo(value), hi(value)]
+          address += @reg.y
+          crossed = diff(address - @reg.y, address)
         when :ind
-          value = [lo(value), hi(value)]
+          address = value
+          #value = [lo(value), hi(value)]
         when :idx
-          value += @reg.x
-          value = [lo(value), hi(value)]
+          address += lo(value + @reg.x)
+          #value += @reg.x
+          #value = [lo(value), hi(value)]
         when :idy
-          value += @reg.y
-          value = [lo(value), hi(value)]
+          address += @reg.y
+          crossed = diff(address - @reg.y, address)
+          #value = [lo(value), hi(value)]
         when :imp
           address = nil
         when :rel
-          value = check_label(value)
+          address += check_label(value)
         else
         end
 
-        #@reg.pc = @memory.store(@reg.pc, value)
+        @cycles += EXTRACYCLES[instruction.opcode] if crossed
+
         address
       end
 
       def check_label(value)
-        value -= @reg.pc + 1
-        value < 0 ? 0xff + value : value
+        value > 0x7f ? -(0xff - value) : value + 1
+        #value -= @reg.pc + 1
+        #value < 0 ? 0xff + value : value
       end
     end
   end

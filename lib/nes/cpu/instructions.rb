@@ -79,11 +79,12 @@ module Instructions
   end
 
   def bne(address)
-    m = @memory.fetch(address)
+    m = address#@memory.fetch(address)
 
     if @reg.z == 0
-      offset = check_branch(m) - 1
-      @reg.pc += offset
+      @reg.pc = address
+      #offset = check_branch(m) - 1
+      #@reg.pc += offset
     end
   end
 
