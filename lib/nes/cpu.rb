@@ -14,7 +14,7 @@ module NES
     FREQ = 1_789_773
 
     class << self
-      attr_accessor :reg
+      attr_reader :reg, :memory
 
       def init
         @reg = Register.new
@@ -67,6 +67,7 @@ module NES
 
           command, param = line.upcase.split(' ')
 
+          # parse label to hash {label: index}
           if command =~ /^\w+:$/
             @labels[command.gsub(':', '')] = @reg.pc
             next
@@ -92,6 +93,8 @@ module NES
       end
 
       def disassemble
+        disasm_text = []
+
         @reg.pc = 0x0200
 
         loop do
@@ -114,10 +117,12 @@ module NES
 
           value = @reg.pc + check_label(value) if mode == :rel
 
-          puts "$#{(@reg.pc - 1).to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}\t#{mode}"
+          disasm_text << "$#{(@reg.pc - 1).to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}\t#{mode}"
 
           @reg.pc += size - 1
         end
+
+        disasm_text
       end
 
       def step(options = {})
@@ -126,7 +131,6 @@ module NES
         instruction = read_instuction
         cmd_cycles = CYCLES[instruction.opcode]
         extra_cycles = EXTRACYCLES[instruction.opcode]
-        p instruction
         @reg.pc += instruction.size
 
         exec_instruction(instruction)
@@ -220,7 +224,7 @@ module NES
         when MODE[:imp]
           [10, nil, 1]
         when MODE[:rel]
-          [11, check_label(@labels[param]), 3]
+          [11, assemble_label(@labels[param]), 3]
         else
           [nil, nil, nil]
         end
@@ -279,8 +283,11 @@ module NES
 
       def check_label(value)
         value > 0x7f ? -(0xff - value) : value + 1
-        #value -= @reg.pc + 1
-        #value < 0 ? 0xff + value : value
+      end
+
+      def assemble_label(value)
+        value -= @reg.pc + 1
+        value < 0 ? 0xff + value : value
       end
     end
   end

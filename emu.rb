@@ -1,10 +1,6 @@
 require_relative 'lib/nes'
 include NES
 
-def to_dump(a)
-  a.map { |e| e.to_i(16) }
-end
-
 code1 =
 	'label:',
   'LDA #$01',
@@ -37,8 +33,7 @@ dump10 = to_dump(%w(a2 00 a0 00 8a 99 00 06 48 e8 c8 c0 10 d0 f5 68 99 00 06 c8 
 
 CPU.init
 #puts CPU.assemble(code1).map { |e| e.to_hex }.join(' ')
-CPU.load(dump10)
-CPU.disassemble
-CPU.execute
-
-CPU.dump
+#CPU.load(dump10)
+#puts CPU.disassemble
+#CPU.execute
+#CPU.dump

@@ -17,3 +17,7 @@ end
 
 Fixnum.include(NESMP)
 NilClass.include(NESMP)
+
+def to_dump(a)
+  a.map { |e| e.to_i(16) }
+end
