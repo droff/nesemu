@@ -152,7 +152,7 @@ module NES
         i = Instruction.new
         i.opcode = @memory.fetch(@reg.pc)
         i.mnemonic, i.mode = find_mnemonic(i.opcode)
-        i.size = SIZE[i.mode]        
+        i.size = SIZE[i.mode]
         i.value =
           case i.size
           when 2

@@ -2,7 +2,7 @@ require_relative 'lib/nes'
 include NES
 
 code1 =
-	'label:',
+  'label:',
   'LDA #$01',
   'TAX',
   'ADC #$c4',
@@ -11,8 +11,8 @@ code1 =
   #'BNE label'
 
 code2 =
-	'LDX #$08',
-	'decrement:',
+  'LDX #$08',
+  'decrement:',
   'DEX',
   'STX $0200',
   'CPX #$03',

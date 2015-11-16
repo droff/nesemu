@@ -6,13 +6,13 @@ module NES
 end
 
 module NESMP
-	def to_hex
-		if self
+  def to_hex
+    if self
       (self > 0xff ? "%04X" : "%02X") % self
     else
       ''
     end
-	end
+  end
 end
 
 Fixnum.include(NESMP)
