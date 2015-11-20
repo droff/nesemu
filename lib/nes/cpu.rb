@@ -1,15 +1,17 @@
-require_relative 'cpu/instructions'
-require_relative 'cpu/opcodes'
-require_relative 'cpu/register'
-require_relative 'cpu/stack'
+require './lib/nes/cpu/instructions'
+require './lib/nes/cpu/opcodes'
+require './lib/nes/cpu/register'
+require './lib/nes/cpu/stack'
+
 ##
 # NES module
 module NES
   ##
   # CPU 6502 implementation
   class CPU
-    extend Instructions
-    extend Opcodes
+    extend NES::Instructions
+    extend NES::Opcodes
+    extend NES::Stack
 
     FREQ = 1_789_773
 
@@ -59,19 +61,42 @@ module NES
       end
 
       def assemble(code)
+        # check labels
+        index = 0
+        code.each do |line|
+          command, param = line.upcase.split(' ')
+          mode, value, size = check_param(param)
+          index += size
+
+          puts "#{command} #{param} #{size} #{mode}"
+
+          if command =~ /^\w+:$/
+            #index -= size
+            @labels[command.gsub(':', '')] = index
+            next
+          end
+
+          #index += 1
+
+          #unless value.nil?
+          #  if value > 0xff
+          #    index += 2
+          #  else
+          #    index += 1
+          #  end
+          #end
+        end
+
+        p @labels
+
         data = []
         index = 0
 
+        # asseble code
         code.each do |line|
           @reg.pc = index
-
           command, param = line.upcase.split(' ')
-
-          # parse label to hash {label: index}
-          if command =~ /^\w+:$/
-            @labels[command.gsub(':', '')] = @reg.pc
-            next
-          end
+          next if command =~ /^\w+:$/
 
           mode, value, size = check_param(param)
           data << get_opcode(command, mode)
@@ -94,7 +119,6 @@ module NES
 
       def disassemble
         disasm_text = []
-
         @reg.pc = 0x0200
 
         loop do
@@ -106,18 +130,19 @@ module NES
           size = SIZE[mode]
           @reg.pc += 1
 
-          case size
-          when 2
-            value = @memory.fetch(@reg.pc)
-          when 3
-            value = @memory.fetch16(@reg.pc)
-          else
-            value = nil
-          end
+          value =
+            case size
+            when 2
+              @memory.fetch(@reg.pc)
+            when 3
+              @memory.fetch16(@reg.pc)
+            else
+              nil
+            end
 
           value = @reg.pc + check_label(value) if mode == :rel
 
-          disasm_text << "$#{(@reg.pc - 1).to_hex}\t#{data.to_hex} #{value.to_hex}\t#{opcode} #{value.to_hex}\t#{mode}"
+          disasm_text << sprintf("$%04x %02s %04s    %03s %04s    :%s", @reg.pc-1, data.to_hex, value.to_hex, opcode, value.to_hex, mode)
 
           @reg.pc += size - 1
         end
@@ -286,8 +311,10 @@ module NES
       end
 
       def assemble_label(value)
-        value -= @reg.pc + 1
-        value < 0 ? 0xff + value : value
+        if value
+          value -= @reg.pc + 1
+          value < 0 ? 0xff + value : value
+        end
       end
     end
   end

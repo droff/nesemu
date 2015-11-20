@@ -1,6 +1,5 @@
-require_relative 'nes/cpu'
-require_relative 'nes/cpu/instructions'
-require_relative 'nes/memory'
+require './lib/nes/cpu'
+require './lib/nes/memory'
 
 module NES
 end

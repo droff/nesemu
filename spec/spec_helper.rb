@@ -1,4 +1,4 @@
-require_relative '../lib/nes'
+require './lib/nes'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
