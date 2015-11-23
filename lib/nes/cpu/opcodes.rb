@@ -128,8 +128,8 @@ module NES
     }
 
     def find_mnemonic(value)
-      OPCODE_LIST.select { |k,v| v.include?(value) }
-        .map { |k,v| [k, MODE.keys[v.index(value)]] }.flatten
+      OPCODE_LIST.select { |_, v| v.include?(value) }
+        .map { |k, v| [k, MODE.keys[v.index(value)]] }.flatten
     end
   end
 end
