@@ -24,6 +24,7 @@ module NES
         @mem[address] = value
         address += 1
       end
+      
       address
     end
 

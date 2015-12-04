@@ -41,7 +41,7 @@ module NES
         @reg.pc = 0x0200
 
         loop do
-          @cycles -= step(debug: false)
+          @cycles -= step(debug: true)
 
           if @cycles <= 0
             @cycles += 0
@@ -63,12 +63,10 @@ module NES
       def assemble(code)
         # check labels
         index = 0
-        code.each do |line|
+        code.each_line do |line|
           command, param = line.upcase.split(' ')
           mode, value, size = check_param(param)
           index += size
-
-          puts "#{command} #{param} #{size} #{mode}"
 
           if command =~ /^\w+:$/
             #index -= size
@@ -87,13 +85,11 @@ module NES
           #end
         end
 
-        p @labels
-
         data = []
         index = 0
 
         # asseble code
-        code.each do |line|
+        code.each_line do |line|
           @reg.pc = index
           command, param = line.upcase.split(' ')
           next if command =~ /^\w+:$/
@@ -299,9 +295,7 @@ module NES
         else
         end
 
-        if crossed
-          @cycles += EXTRACYCLES[instruction.opcode]
-        end
+        @cycles += EXTRACYCLES[instruction.opcode] if crossed
 
         address
       end
