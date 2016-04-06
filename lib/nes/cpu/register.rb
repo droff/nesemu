@@ -1,5 +1,4 @@
 module NES
-  ##
   # CPU registers
   class Register
     attr_accessor :a, :x, :y, :p, :sp, :pc, :c, :z, :i, :d, :b, :u, :v, :n

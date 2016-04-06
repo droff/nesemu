@@ -9,5 +9,5 @@ NES::CPU.load(to_dump(dump.split))
 
 #NES::CPU.load(dump)
 puts NES::CPU.disassemble
-NES::CPU.execute
-NES::CPU.dump
+#NES::CPU.execute
+#NES::CPU.dump

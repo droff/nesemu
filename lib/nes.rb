@@ -6,11 +6,20 @@ end
 
 module NESMP
   def to_hex
-    if self
-      (self > 0xff ? "%04X" : "%02X") % self
+    return '' unless self
+    if self > 0xff
+      printf("%02X %02X", lo, hi)
     else
-      ''
+      "%02X" % self
     end
+  end
+
+  def lo
+    self & 0xff
+  end
+
+  def hi
+    self >> 8
   end
 end
 
