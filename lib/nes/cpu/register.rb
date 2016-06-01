@@ -11,18 +11,11 @@ module NES
       @sp = 0  # S: STACK POINTER
       @pc = 0  # PC: PROGRAM COUNTER (16-bit)
 
-      @c = 0
-      @z = 0
-      @i = 0
-      @d = 0
-      @b = 0
-      @u = 0
-      @v = 0
-      @n = 0
+      @c = @z = @i = @d = @b = @u = @v = @n = 0
     end
 
     def dump_registers
-      "A=#{@a.to_hex} X=#{@x.to_hex} Y=#{@y.to_hex}\n" \
+      "A=#{@a.to_hex} X=#{@x.to_hex} Y=#{@y.to_hex}\t\t" \
       "SP=#{@sp.to_hex} PC=#{@pc.to_hex}"
     end
 

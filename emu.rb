@@ -3,11 +3,14 @@ require './lib/nes'
 code = File.read(ARGV[0])
 
 NES::CPU.init
-dump = NES::CPU.assemble(code).map { |e| e.to_hex }.join(' ')
-NES::CPU.load(to_dump(dump.split))
+dump = NES::CPU.assemble(code)
+
+NES::CPU.load(dump)
+NES::CPU.run
+NES::CPU.dump
 
 
 #NES::CPU.load(dump)
-puts NES::CPU.disassemble
+#puts NES::CPU.disassemble
 #NES::CPU.execute
 #NES::CPU.dump

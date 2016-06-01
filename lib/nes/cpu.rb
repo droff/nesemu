@@ -22,7 +22,7 @@ module NES
         @reg = Register.new
         @memory = Memory.new
         @cycles = 0
-        @labels = {}
+        @labels = Hash.new(0)
         reset
       end
 
@@ -37,7 +37,7 @@ module NES
         data.each_with_index { |e, i| @memory.store(0x0200 + i, e) }
       end
 
-      def execute
+      def run
         @reg.pc = 0x0200
 
         loop do
@@ -51,13 +51,13 @@ module NES
       end
 
       def dump
-        puts '-' * 35
+        puts '-' * 64
         puts @reg.dump_registers
         puts @reg.dump_flags
         puts @memory.dump(0x0000, 0xf)
         puts @memory.dump(0x0200, 0xf)
         puts @memory.dump(0x01fa, 0x5)
-        puts '-' * 35
+        puts '-' * 64
       end
 
       def assemble(code)
@@ -65,24 +65,13 @@ module NES
         index = 0
         code.each_line do |line|
           command, param = line.upcase.split(' ')
-          mode, value, size = check_param(param)
-          index += size
-
           if command =~ /^\w+:$/
-            #index -= size
             @labels[command.gsub(':', '')] = index
             next
           end
 
-          #index += 1
-
-          #unless value.nil?
-          #  if value > 0xff
-          #    index += 2
-          #  else
-          #    index += 1
-          #  end
-          #end
+          mode, value, size = check_param(param)
+          index += size
         end
 
         data = []
@@ -245,7 +234,7 @@ module NES
         when MODE[:imp]
           [10, nil, 1]
         when MODE[:rel]
-          [11, assemble_label(@labels[param]), 3]
+          [11, assemble_label(@labels[param]), 2]
         else
           [nil, nil, nil]
         end
@@ -306,8 +295,8 @@ module NES
 
       def assemble_label(value)
         if value
-          value -= @reg.pc + 1
-          value < 0 ? 0xff + value : value
+          value -= @reg.pc + 2
+          value < 0 ? 0xff + value + 1 : value
         end
       end
     end
