@@ -16,7 +16,7 @@ module NES
 
     def store(address, value)
       if value.is_a? Array
-        value.each do |e, i|
+        value.each do |e|
           @mem[address] = e
           address += 1
         end
@@ -24,7 +24,7 @@ module NES
         @mem[address] = value
         address += 1
       end
-      
+
       address
     end
 

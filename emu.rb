@@ -8,9 +8,3 @@ dump = NES::CPU.assemble(code)
 NES::CPU.load(dump)
 NES::CPU.run
 NES::CPU.dump
-
-
-#NES::CPU.load(dump)
-#puts NES::CPU.disassemble
-#NES::CPU.execute
-#NES::CPU.dump

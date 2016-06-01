@@ -41,7 +41,7 @@ module NES
         @reg.pc = 0x0200
 
         loop do
-          @cycles -= step(debug: true)
+          @cycles -= step
 
           if @cycles <= 0
             @cycles += 0
@@ -61,45 +61,8 @@ module NES
       end
 
       def assemble(code)
-        # check labels
-        index = 0
-        code.each_line do |line|
-          command, param = line.upcase.split(' ')
-          if command =~ /^\w+:$/
-            @labels[command.gsub(':', '')] = index
-            next
-          end
-
-          mode, value, size = check_param(param)
-          index += size
-        end
-
-        data = []
-        index = 0
-
-        # asseble code
-        code.each_line do |line|
-          @reg.pc = index
-          command, param = line.upcase.split(' ')
-          next if command =~ /^\w+:$/
-
-          mode, value, size = check_param(param)
-          data << get_opcode(command, mode)
-          index += 1
-
-          unless value.nil?
-            if value > 0xff
-              data << lo(value)
-              data << hi(value)
-              index += 2
-            else
-              data << value
-              index += 1
-            end
-          end
-        end
-
-        data
+        @labels = parse_labels(code)
+         parse_code(code)
       end
 
       def disassemble
@@ -173,6 +136,7 @@ module NES
             nil
           end
         i.address = check_mode(i)
+
         i
       end
 
@@ -287,6 +251,52 @@ module NES
         @cycles += EXTRACYCLES[instruction.opcode] if crossed
 
         address
+      end
+
+      def parse_labels(code)
+        labels = {}
+        current_postition = 0
+
+        code.each_line do |line|
+          command, param = line.upcase.split(' ')
+          # if label:
+          if command =~ /^\w+:$/
+            labels[command.gsub(':', '')] = current_postition
+            next
+          end
+          _, _, size = check_param(param)
+          current_postition += size
+        end
+
+        labels
+      end
+
+      def parse_code(code)
+        index = 0
+        data = []
+
+        code.each_line do |line|
+          @reg.pc = index
+          command, param = line.upcase.split(' ')
+          next if command =~ /^\w+:$/
+
+          mode, value, size = check_param(param)
+          data << get_opcode(command, mode)
+          index += 1
+
+          unless value.nil?
+            if value > 0xff
+              data << lo(value)
+              data << hi(value)
+              index += 2
+            else
+              data << value
+              index += 1
+            end
+          end
+        end
+
+        data
       end
 
       def check_label(value)
