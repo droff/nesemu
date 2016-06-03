@@ -1,3 +1,4 @@
+require './lib/nes/asm'
 require './lib/nes/cpu'
 require './lib/nes/memory'
 
