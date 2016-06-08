@@ -4,7 +4,7 @@ class NES::Instruction
   def initialize(memory, reg)
     @memory = memory
     @reg = reg
-    @opcode = memory.fetch(reg.c)
+    @opcode = memory.fetch(reg.pc)
     @mnemonic, @mode = find_mnemonic
     @size = SIZE[@mode]
     @value = get_value
